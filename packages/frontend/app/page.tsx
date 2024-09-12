@@ -25,7 +25,7 @@ const Home: NextPage = () => {
           <p className="text-center">You can either create a game, or join an open game below:</p>
         </div>
 
-        <div className="bg-secondary mt-8 w-full px-8 py-16 gap-8 flex flex-row justify-center items-center">
+        <div className="bg-secondary mt-8 w-full px-8 py-16 flex flex-col justify-center items-center">
           <HomeContent />
         </div>
       </div>
