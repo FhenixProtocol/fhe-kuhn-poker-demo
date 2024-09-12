@@ -6,6 +6,7 @@ import "@fhenixprotocol/contracts/FHE.sol";
 import "hardhat/console.sol";
 import { Permissioned, Permission } from "@fhenixprotocol/contracts/access/Permissioned.sol";
 import { SealedUint, TypedBindingsEuint8 } from "./FHETypedSealed.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 // Simplified Poker (https://en.wikipedia.org/wiki/Kuhn_poker) on Fhenix
 // Powered and secured by FHE
@@ -52,6 +53,7 @@ struct GameOutcome {
 }
 
 contract FHEKuhnPoker is Permissioned {
+	using EnumerableSet for EnumerableSet.UintSet;
 	using TypedBindingsEuint8 for euint8;
 
 	euint32 private counter;
@@ -65,6 +67,8 @@ contract FHEKuhnPoker is Permissioned {
 
 	mapping(address => uint256) public chips;
 	mapping(uint256 => Game) public games;
+	mapping(address => EnumerableSet.UintSet) private userGames;
+	EnumerableSet.UintSet private openGames;
 
 	constructor() {
 		owner = msg.sender;
@@ -105,6 +109,9 @@ contract FHEKuhnPoker is Permissioned {
 		game.gid = gid;
 		game.playerA = msg.sender;
 
+		userGames[msg.sender].add(gid);
+		openGames.add(gid);
+
 		// Take ante from player
 		takeChip(game);
 
@@ -117,6 +124,9 @@ contract FHEKuhnPoker is Permissioned {
 
 		Game storage game = games[_gid];
 		if (game.playerA == msg.sender) revert InvalidPlayerB();
+
+		userGames[msg.sender].add(_gid);
+		openGames.remove(_gid);
 
 		// Take ante from player
 		takeChip(game);
@@ -301,5 +311,25 @@ contract FHEKuhnPoker is Permissioned {
 
 	function getGame(uint256 _gid) external view returns (Game memory game) {
 		game = games[_gid];
+	}
+
+	function getUserGames(
+		address user
+	) external view returns (Game[] memory ret) {
+		uint256 userGamesCount = userGames[user].length();
+		ret = new Game[](userGamesCount);
+
+		for (uint256 i = 0; i < userGamesCount; i++) {
+			ret[i] = games[userGames[user].at(i)];
+		}
+	}
+
+	function getOpenGames() external view returns (Game[] memory ret) {
+		uint256 openGamesCount = openGames.length();
+		ret = new Game[](openGamesCount);
+
+		for (uint256 i = 0; i < openGamesCount; i++) {
+			ret[i] = games[openGames.at(i)];
+		}
 	}
 }

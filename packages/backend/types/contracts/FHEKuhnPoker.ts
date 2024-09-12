@@ -112,6 +112,8 @@ export interface FHEKuhnPokerInterface extends Interface {
       | "games"
       | "getGame"
       | "getGameCard"
+      | "getOpenGames"
+      | "getUserGames"
       | "gid"
       | "joinGame"
       | "owner"
@@ -152,6 +154,14 @@ export interface FHEKuhnPokerInterface extends Interface {
     functionFragment: "getGameCard",
     values: [PermissionStruct, BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "getOpenGames",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getUserGames",
+    values: [AddressLike]
+  ): string;
   encodeFunctionData(functionFragment: "gid", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "joinGame",
@@ -174,6 +184,14 @@ export interface FHEKuhnPokerInterface extends Interface {
   decodeFunctionResult(functionFragment: "getGame", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getGameCard",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getOpenGames",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getUserGames",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "gid", data: BytesLike): Result;
@@ -416,6 +434,14 @@ export interface FHEKuhnPoker extends BaseContract {
     "view"
   >;
 
+  getOpenGames: TypedContractMethod<[], [GameStructOutput[]], "view">;
+
+  getUserGames: TypedContractMethod<
+    [user: AddressLike],
+    [GameStructOutput[]],
+    "view"
+  >;
+
   gid: TypedContractMethod<[], [bigint], "view">;
 
   joinGame: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
@@ -503,6 +529,12 @@ export interface FHEKuhnPoker extends BaseContract {
     [SealedUintStructOutput],
     "view"
   >;
+  getFunction(
+    nameOrSignature: "getOpenGames"
+  ): TypedContractMethod<[], [GameStructOutput[]], "view">;
+  getFunction(
+    nameOrSignature: "getUserGames"
+  ): TypedContractMethod<[user: AddressLike], [GameStructOutput[]], "view">;
   getFunction(
     nameOrSignature: "gid"
   ): TypedContractMethod<[], [bigint], "view">;

@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   412346: {
     Counter: {
-      address: "0x88d9076cBe1445ad13F63D3b44d95e07582fFe82",
+      address: "0x93D137f4B37253beb1e9E861484CB8af08515BC3",
       abi: [
         {
           inputs: [],
@@ -247,7 +247,7 @@ const deployedContracts = {
       },
     },
     FHEKuhnPoker: {
-      address: "0xc172fc2df2E4841DFf0e2A8395318E51dB031053",
+      address: "0xf0Bf42fb68BdEE2FfeF85C74b6fa1e44AF72D44B",
       abi: [
         {
           inputs: [],
@@ -838,6 +838,216 @@ const deployedContracts = {
               internalType: "struct SealedUint",
               name: "",
               type: "tuple",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getOpenGames",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "gid",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address",
+                  name: "playerA",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "playerB",
+                  type: "address",
+                },
+                {
+                  internalType: "bool",
+                  name: "accepted",
+                  type: "bool",
+                },
+                {
+                  internalType: "uint8",
+                  name: "pot",
+                  type: "uint8",
+                },
+                {
+                  internalType: "uint8",
+                  name: "startingPlayer",
+                  type: "uint8",
+                },
+                {
+                  internalType: "euint8",
+                  name: "eCardA",
+                  type: "uint256",
+                },
+                {
+                  internalType: "euint8",
+                  name: "eCardB",
+                  type: "uint256",
+                },
+                {
+                  internalType: "enum Action",
+                  name: "action1",
+                  type: "uint8",
+                },
+                {
+                  internalType: "enum Action",
+                  name: "action2",
+                  type: "uint8",
+                },
+                {
+                  internalType: "enum Action",
+                  name: "action3",
+                  type: "uint8",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "uint256",
+                      name: "gid",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint8",
+                      name: "cardA",
+                      type: "uint8",
+                    },
+                    {
+                      internalType: "uint8",
+                      name: "cardB",
+                      type: "uint8",
+                    },
+                    {
+                      internalType: "address",
+                      name: "winner",
+                      type: "address",
+                    },
+                    {
+                      internalType: "enum Outcome",
+                      name: "outcome",
+                      type: "uint8",
+                    },
+                  ],
+                  internalType: "struct GameOutcome",
+                  name: "outcome",
+                  type: "tuple",
+                },
+              ],
+              internalType: "struct Game[]",
+              name: "ret",
+              type: "tuple[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+          ],
+          name: "getUserGames",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "gid",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address",
+                  name: "playerA",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "playerB",
+                  type: "address",
+                },
+                {
+                  internalType: "bool",
+                  name: "accepted",
+                  type: "bool",
+                },
+                {
+                  internalType: "uint8",
+                  name: "pot",
+                  type: "uint8",
+                },
+                {
+                  internalType: "uint8",
+                  name: "startingPlayer",
+                  type: "uint8",
+                },
+                {
+                  internalType: "euint8",
+                  name: "eCardA",
+                  type: "uint256",
+                },
+                {
+                  internalType: "euint8",
+                  name: "eCardB",
+                  type: "uint256",
+                },
+                {
+                  internalType: "enum Action",
+                  name: "action1",
+                  type: "uint8",
+                },
+                {
+                  internalType: "enum Action",
+                  name: "action2",
+                  type: "uint8",
+                },
+                {
+                  internalType: "enum Action",
+                  name: "action3",
+                  type: "uint8",
+                },
+                {
+                  components: [
+                    {
+                      internalType: "uint256",
+                      name: "gid",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint8",
+                      name: "cardA",
+                      type: "uint8",
+                    },
+                    {
+                      internalType: "uint8",
+                      name: "cardB",
+                      type: "uint8",
+                    },
+                    {
+                      internalType: "address",
+                      name: "winner",
+                      type: "address",
+                    },
+                    {
+                      internalType: "enum Outcome",
+                      name: "outcome",
+                      type: "uint8",
+                    },
+                  ],
+                  internalType: "struct GameOutcome",
+                  name: "outcome",
+                  type: "tuple",
+                },
+              ],
+              internalType: "struct Game[]",
+              name: "ret",
+              type: "tuple[]",
             },
           ],
           stateMutability: "view",
