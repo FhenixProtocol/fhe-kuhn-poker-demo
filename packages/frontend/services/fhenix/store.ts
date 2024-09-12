@@ -7,6 +7,7 @@ import { immer } from "zustand/middleware/immer";
 
 type ContractAccountKey = `0x${string}_0x${string}`;
 type FhenixState = {
+  initializedAccount: string | undefined;
   provider: JsonRpcProvider | BrowserProvider | undefined;
   client: FhenixClientSync | undefined;
   contractAccountPermits: Record<ContractAccountKey, Permit>;
@@ -16,6 +17,7 @@ export const useFhenixState = create<FhenixState>()(
   immer(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (set, get): FhenixState => ({
+      initializedAccount: undefined,
       provider: undefined,
       client: undefined,
       contractAccountPermits: {},
@@ -24,7 +26,9 @@ export const useFhenixState = create<FhenixState>()(
 );
 
 export const initFhenixClient = async (account: `0x${string}` | undefined) => {
-  if (useFhenixState.getState().provider != null) return;
+  console.log("Init fhenix client for ", account);
+  if (account === useFhenixState.getState().initializedAccount && useFhenixState.getState().provider != null) return;
+  console.log("step 1");
 
   // Initialize the provider.
   // @todo: Find a way not to use ethers.BrowserProvider because we already have viem and wagmi here.
@@ -44,6 +48,7 @@ export const initFhenixClient = async (account: `0x${string}` | undefined) => {
   }
 
   useFhenixState.setState({
+    initializedAccount: account,
     provider,
     client,
     contractAccountPermits: loadedPermitsWithAccount,
