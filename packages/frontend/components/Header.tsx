@@ -1,7 +1,6 @@
 "use client";
 
 import { Bars3Icon, BugAntIcon } from "@heroicons/react/24/outline";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useRef, useState } from "react";
@@ -89,12 +88,9 @@ export const Header = () => {
           )}
         </div>
         <Link href="/" passHref className="hidden lg:flex items-center gap-2 ml-4 mr-6 shrink-0">
-          <div className="flex relative w-10 h-10">
-            <Image alt="Fhenix logo" className="cursor-pointer" fill src="/logo.svg" />
-          </div>
           <div className="flex flex-col">
-            <span className="font-bold leading-tight">Create Fhenix DApp</span>
-            <span className="text-xs">Fhenix dev stack</span>
+            <span className="font-bold leading-tight">FHE Kuhn Poker</span>
+            <span className="text-xs">Powered by Fhenix</span>
           </div>
         </Link>
         <ul className="hidden lg:flex lg:flex-nowrap menu menu-horizontal px-1 gap-2">

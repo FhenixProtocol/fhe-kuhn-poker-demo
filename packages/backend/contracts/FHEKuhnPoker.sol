@@ -71,11 +71,7 @@ contract FHEKuhnPoker is Permissioned {
 	}
 
 	event PlayerDealtIn(address indexed user, uint256 chips);
-	event GameCreated(
-		address indexed playerA,
-		address indexed playerB,
-		uint256 indexed gid
-	);
+	event GameCreated(address indexed playerA, uint256 indexed gid);
 	event GameAccepted(address indexed playerB, uint256 indexed gid);
 	event PerformedGameAction(
 		address indexed player,
@@ -104,33 +100,30 @@ contract FHEKuhnPoker is Permissioned {
 		emit PlayerDealtIn(msg.sender, chipCount);
 	}
 
-	function createGame(address playerB) public {
-		if (playerB == address(0) || playerB == msg.sender)
-			revert InvalidPlayerB();
-
+	function createGame() public {
 		Game storage game = games[gid];
 		game.gid = gid;
 		game.playerA = msg.sender;
-		game.playerB = playerB;
 
 		// Take ante from player
 		takeChip(game);
 
-		emit GameCreated(msg.sender, playerB, gid);
+		emit GameCreated(msg.sender, gid);
 		gid += 1;
 	}
 
-	function acceptGame(uint256 _gid) public {
+	function joinGame(uint256 _gid) public {
 		if (_gid >= gid) revert InvalidGame();
 
 		Game storage game = games[_gid];
-		if (game.playerB != msg.sender) revert NotPlayerInGame();
+		if (game.playerA == msg.sender) revert InvalidPlayerB();
 
 		// Take ante from player
 		takeChip(game);
 
 		// Start game
 		game.accepted = true;
+		game.playerB = msg.sender;
 
 		// Random value between 0 and 1
 		// FHE randomness is leveraged, but it does not need to remain encrypted
@@ -304,5 +297,9 @@ contract FHEKuhnPoker is Permissioned {
 			return game.eCardB.sealTyped(permission.publicKey);
 		}
 		revert NotPlayerInGame();
+	}
+
+	function getGame(uint256 _gid) external view returns (Game memory game) {
+		game = games[_gid];
 	}
 }

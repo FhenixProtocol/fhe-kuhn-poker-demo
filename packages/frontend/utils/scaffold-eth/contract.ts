@@ -108,16 +108,35 @@ export type AbiFunctionOutputs<TAbi extends Abi, TFunctionName extends string> =
   TFunctionName
 >["outputs"];
 
+type Normalize<T> = T extends (...args: infer A) => infer R
+  ? (...args: Normalize<A>) => Normalize<R>
+  : { [K in keyof T]: Normalize<T[K]> };
+
 export type AbiFunctionReturnType<
   TAbi extends Abi,
   TFunctionName extends string,
   TFhenixMapType extends FhenixUtilsTypeModificationOption = "raw",
 > = IsContractDeclarationMissing<
   any,
-  AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>> extends readonly [any]
-    ? FhenixMappedOutputTypes<AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>, TFhenixMapType>[0]
-    : FhenixMappedOutputTypes<AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>, TFhenixMapType>
+  Normalize<
+    AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>> extends readonly [any]
+      ? FhenixMappedOutputTypes<
+          AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>,
+          TFhenixMapType
+        >[0]
+      : FhenixMappedOutputTypes<AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>, TFhenixMapType>
+  >
 >;
+
+// export type AbiFunctionReturnType2<TAbi extends Abi, TFunctionName extends string> = IsContractDeclarationMissing<
+//   any,
+//   AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>> extends readonly [any]
+//     ? AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>[0]
+//     : AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>
+// >;
+
+// type test = Normalize<AbiFunctionReturnType<ContractAbi<"FHEKuhnPoker">, "games">>;
+// type test2 = Normalize<AbiFunctionReturnType2<ContractAbi<"FHEKuhnPoker">, "games">>;
 
 export type AbiEventInputs<TAbi extends Abi, TEventName extends ExtractAbiEventNames<TAbi>> = ExtractAbiEvent<
   TAbi,
@@ -168,10 +187,12 @@ export type UseScaffoldArgsParam<
   ? {
       args: OptionalTupple<
         UnionToIntersection<
-          FhenixMappedInputTypes<
-            // Args
-            AbiFunctionArguments<ContractAbi<TContractName>, TFunctionName>,
-            TFhenixMapType
+          Normalize<
+            FhenixMappedInputTypes<
+              // Args
+              AbiFunctionArguments<ContractAbi<TContractName>, TFunctionName>,
+              TFhenixMapType
+            >
           >
         >
       >;

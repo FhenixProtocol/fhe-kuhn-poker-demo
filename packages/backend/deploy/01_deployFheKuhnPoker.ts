@@ -1,7 +1,7 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-const CONTRACT_NAME = "FheKuhnPoker";
+const CONTRACT_NAME = "FHEKuhnPoker";
 
 /**
  * Deploys a contract named "FheKuhnPoker" using the deployer account and

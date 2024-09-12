@@ -235,7 +235,7 @@ type FhenixMappedInputType<T, E extends FhenixUtilsTypeModificationOption = "raw
   ? FhenixPermissionTypeMap<E>
   : T extends DEncryptedItem
   ? EncryptableInputTypeMap<E>[T["type"]]
-  : T;
+  : FhenixMappedInputTypes<T, E>;
 
 export type FhenixMappedInputTypes<T, E extends FhenixUtilsTypeModificationOption = "raw"> = {
   [K in keyof T]: FhenixMappedInputType<T[K], E>;
@@ -305,7 +305,7 @@ type MappedOutputTypesSelector<T, E extends FhenixUtilsTypeModificationOption = 
   ? E extends "raw"
     ? SealedOutputAddress
     : string
-  : T;
+  : FhenixMappedOutputTypes<T, E>;
 
 export type FhenixMappedOutputTypes<T, E extends FhenixUtilsTypeModificationOption = "raw"> = {
   [K in keyof T]: MappedOutputTypesSelector<T[K], E>;

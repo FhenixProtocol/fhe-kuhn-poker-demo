@@ -4,12 +4,12 @@
   "scripts": {
     "account": "hardhat run scripts/listAccount.ts",
     "chain:faucet": "hardhat task:fhenix:usefaucet",
-    "chain:start": "hardhat localfhenix:start",
+    "chain:start": "hardhat localfhenix:start --image ghcr.io/fhenixprotocol/nitro/localfhenix:v0.3.0-alpha.2",
     "chain:stop": "hardhat localfhenix:stop",
     "clear": "rimraf ./artifacts ./cache ./coverage ./types ./coverage.json ./deployments/localfhenix",
     "compile": "hardhat compile",
     "create-config": "[ ! -f .env ] && cp .env.example .env || :",
-    "deploy:contracts": "pnpm clear && hardhat deploy",
+    "deploy:contracts": "pnpm clear && hardhat deploy --network localfhenix",
     "flatten": "hardhat flatten",
     "fork": "MAINNET_FORKING_ENABLED=true hardhat node --network hardhat --no-deploy",
     "format": "prettier --write ./*.ts ./deploy/**/*.ts ./scripts/**/*.ts ./test/**/*.ts",
@@ -67,6 +67,7 @@
     "solidity-coverage": "~0.8.5",
     "ts-node": "~10.9.1",
     "typechain": "~8.3.2",
-    "typescript": "~5.1.6"
+    "typescript": "~5.1.6",
+    "inquirer": "^10.2.2"
   }
 }

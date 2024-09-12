@@ -45,6 +45,49 @@ export type GameOutcomeStructOutput = [
   outcome: bigint;
 };
 
+export type GameStruct = {
+  gid: BigNumberish;
+  playerA: AddressLike;
+  playerB: AddressLike;
+  accepted: boolean;
+  pot: BigNumberish;
+  startingPlayer: BigNumberish;
+  eCardA: BigNumberish;
+  eCardB: BigNumberish;
+  action1: BigNumberish;
+  action2: BigNumberish;
+  action3: BigNumberish;
+  outcome: GameOutcomeStruct;
+};
+
+export type GameStructOutput = [
+  gid: bigint,
+  playerA: string,
+  playerB: string,
+  accepted: boolean,
+  pot: bigint,
+  startingPlayer: bigint,
+  eCardA: bigint,
+  eCardB: bigint,
+  action1: bigint,
+  action2: bigint,
+  action3: bigint,
+  outcome: GameOutcomeStructOutput
+] & {
+  gid: bigint;
+  playerA: string;
+  playerB: string;
+  accepted: boolean;
+  pot: bigint;
+  startingPlayer: bigint;
+  eCardA: bigint;
+  eCardB: bigint;
+  action1: bigint;
+  action2: bigint;
+  action3: bigint;
+  outcome: GameOutcomeStructOutput;
+};
+
 export type PermissionStruct = { publicKey: BytesLike; signature: BytesLike };
 
 export type PermissionStructOutput = [publicKey: string, signature: string] & {
@@ -62,14 +105,15 @@ export type SealedUintStructOutput = [data: string, utype: bigint] & {
 export interface FHEKuhnPokerInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "acceptGame"
       | "chips"
       | "createGame"
       | "dealMeIn"
       | "eip712Domain"
       | "games"
+      | "getGame"
       | "getGameCard"
       | "gid"
+      | "joinGame"
       | "owner"
       | "performAction"
   ): FunctionFragment;
@@ -86,14 +130,10 @@ export interface FHEKuhnPokerInterface extends Interface {
       | "WonByShowdown"
   ): EventFragment;
 
-  encodeFunctionData(
-    functionFragment: "acceptGame",
-    values: [BigNumberish]
-  ): string;
   encodeFunctionData(functionFragment: "chips", values: [AddressLike]): string;
   encodeFunctionData(
     functionFragment: "createGame",
-    values: [AddressLike]
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "dealMeIn",
@@ -105,17 +145,24 @@ export interface FHEKuhnPokerInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "games", values: [BigNumberish]): string;
   encodeFunctionData(
+    functionFragment: "getGame",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getGameCard",
     values: [PermissionStruct, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "gid", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "joinGame",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "performAction",
     values: [BigNumberish, BigNumberish]
   ): string;
 
-  decodeFunctionResult(functionFragment: "acceptGame", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "chips", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "createGame", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "dealMeIn", data: BytesLike): Result;
@@ -124,11 +171,13 @@ export interface FHEKuhnPokerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "games", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "getGame", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getGameCard",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "gid", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "joinGame", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "performAction",
@@ -173,15 +222,10 @@ export namespace GameAcceptedEvent {
 }
 
 export namespace GameCreatedEvent {
-  export type InputTuple = [
-    playerA: AddressLike,
-    playerB: AddressLike,
-    gid: BigNumberish
-  ];
-  export type OutputTuple = [playerA: string, playerB: string, gid: bigint];
+  export type InputTuple = [playerA: AddressLike, gid: BigNumberish];
+  export type OutputTuple = [playerA: string, gid: bigint];
   export interface OutputObject {
     playerA: string;
-    playerB: string;
     gid: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -300,11 +344,9 @@ export interface FHEKuhnPoker extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  acceptGame: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
-
   chips: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
-  createGame: TypedContractMethod<[playerB: AddressLike], [void], "nonpayable">;
+  createGame: TypedContractMethod<[], [void], "nonpayable">;
 
   dealMeIn: TypedContractMethod<
     [chipCount: BigNumberish],
@@ -362,6 +404,12 @@ export interface FHEKuhnPoker extends BaseContract {
     "view"
   >;
 
+  getGame: TypedContractMethod<
+    [_gid: BigNumberish],
+    [GameStructOutput],
+    "view"
+  >;
+
   getGameCard: TypedContractMethod<
     [permission: PermissionStruct, _gid: BigNumberish],
     [SealedUintStructOutput],
@@ -369,6 +417,8 @@ export interface FHEKuhnPoker extends BaseContract {
   >;
 
   gid: TypedContractMethod<[], [bigint], "view">;
+
+  joinGame: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
 
   owner: TypedContractMethod<[], [string], "view">;
 
@@ -383,14 +433,11 @@ export interface FHEKuhnPoker extends BaseContract {
   ): T;
 
   getFunction(
-    nameOrSignature: "acceptGame"
-  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
-  getFunction(
     nameOrSignature: "chips"
   ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
   getFunction(
     nameOrSignature: "createGame"
-  ): TypedContractMethod<[playerB: AddressLike], [void], "nonpayable">;
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "dealMeIn"
   ): TypedContractMethod<[chipCount: BigNumberish], [void], "nonpayable">;
@@ -447,6 +494,9 @@ export interface FHEKuhnPoker extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "getGame"
+  ): TypedContractMethod<[_gid: BigNumberish], [GameStructOutput], "view">;
+  getFunction(
     nameOrSignature: "getGameCard"
   ): TypedContractMethod<
     [permission: PermissionStruct, _gid: BigNumberish],
@@ -456,6 +506,9 @@ export interface FHEKuhnPoker extends BaseContract {
   getFunction(
     nameOrSignature: "gid"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "joinGame"
+  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
@@ -558,7 +611,7 @@ export interface FHEKuhnPoker extends BaseContract {
       GameAcceptedEvent.OutputObject
     >;
 
-    "GameCreated(address,address,uint256)": TypedContractEvent<
+    "GameCreated(address,uint256)": TypedContractEvent<
       GameCreatedEvent.InputTuple,
       GameCreatedEvent.OutputTuple,
       GameCreatedEvent.OutputObject

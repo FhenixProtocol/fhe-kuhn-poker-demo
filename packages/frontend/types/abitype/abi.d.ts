@@ -1,14 +1,15 @@
 import { DEncryptedInputTypes, DSealedOutputTypes, DFhenixPermission } from "~~/utils/fhenixUtilsTypes";
 
 declare module "viem/node_modules/abitype" {
-  export interface Config {
-    AddressType: AddressType;
+  export interface Register {
+    AddressType: string;
   }
 }
 
 declare module "abitype" {
   export interface Register {
-    AddressType: AddressType;
+    AddressType: string;
+
     structTypeMatches: {
       inBool: DEncryptedInputTypes["bool"];
       inEuint8: DEncryptedInputTypes["uint8"];

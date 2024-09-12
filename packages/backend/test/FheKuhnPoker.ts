@@ -78,90 +78,72 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("createGame should revert with invalid params", async () => {
-    // Invalid playerB
-    await expect(fheKuhnPoker.connect(bob).createGame(bob.address)).to.be.revertedWithCustomError(
-      fheKuhnPoker,
-      "InvalidPlayerB",
-    );
-    await expect(fheKuhnPoker.connect(bob).createGame(ZeroAddress)).to.be.revertedWithCustomError(
-      fheKuhnPoker,
-      "InvalidPlayerB",
-    );
-
     // Bob doesn't have chips
-    await expect(fheKuhnPoker.connect(bob).createGame(ada.address)).to.be.revertedWithCustomError(
-      fheKuhnPoker,
-      "NotEnoughChips",
-    );
+    await expect(fheKuhnPoker.connect(bob).createGame()).to.be.revertedWithCustomError(fheKuhnPoker, "NotEnoughChips");
   });
 
   it("createGame should succeed", async () => {
     const gid = 0;
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await expect(fheKuhnPoker.connect(bob).createGame(ada.address))
+    await expect(fheKuhnPoker.connect(bob).createGame())
       .to.emit(fheKuhnPoker, "GameCreated")
-      .withArgs(bob.address, ada.address, gid);
+      .withArgs(bob.address, gid);
 
     const game = await fheKuhnPoker.games(gid);
 
     expect(game.gid).to.eq(gid, "game id is 0");
     expect(game.playerA).to.eq(bob.address, "playerA is bob");
-    expect(game.playerB).to.eq(ada.address, "playerA is ada");
+    expect(game.playerB).to.eq(ZeroAddress, "playerB is unset");
     expect(game.pot).to.eq(1, "pot includes bob's ante");
     expect(await fheKuhnPoker.chips(bob.address)).to.eq(99, "bob's ante taken");
   });
 
-  it("acceptGame should revert with invalid params", async () => {
+  it("joinGame should revert with invalid params", async () => {
     const gid = 0;
 
     // Invalid gid
-    await expect(fheKuhnPoker.connect(ada).acceptGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "InvalidGame");
+    await expect(fheKuhnPoker.connect(ada).joinGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "InvalidGame");
 
     // Create game
     await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame(ada.address);
+    await fheKuhnPoker.connect(bob).createGame();
 
-    // Not playerB
-    await expect(fheKuhnPoker.connect(signer).acceptGame(gid)).to.be.revertedWithCustomError(
-      fheKuhnPoker,
-      "NotPlayerInGame",
-    );
+    // Invalid playerB
+    await expect(fheKuhnPoker.connect(bob).joinGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "InvalidPlayerB");
 
     // Not enough chips
-    await expect(fheKuhnPoker.connect(ada).acceptGame(gid)).to.be.revertedWithCustomError(
-      fheKuhnPoker,
-      "NotEnoughChips",
-    );
+    await expect(fheKuhnPoker.connect(ada).joinGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "NotEnoughChips");
 
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await expect(fheKuhnPoker.connect(ada).acceptGame(gid)).to.not.be.reverted;
+    await expect(fheKuhnPoker.connect(ada).joinGame(gid)).to.not.be.reverted;
   });
 
-  it("acceptGame should succeed", async () => {
+  it("joinGame should succeed", async () => {
     const gid = 0;
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame(ada.address);
+    await fheKuhnPoker.connect(bob).createGame();
 
-    await expect(fheKuhnPoker.connect(ada).acceptGame(gid))
+    await expect(fheKuhnPoker.connect(ada).joinGame(gid))
       .to.emit(fheKuhnPoker, "GameAccepted")
       .withArgs(ada.address, gid);
 
     const game = await fheKuhnPoker.games(gid);
 
     expect(game.accepted).to.eq(true, "ada accepted game");
+    expect(game.playerB).to.eq(ada.address, "Ada is playerB");
     expect([0n, 1n].includes(game.startingPlayer)).to.eq(true, "Starting player should be 0 or 1");
     expect(game.pot).to.eq(2, "ada's ante should be added");
     expect(await fheKuhnPoker.chips(ada.address)).to.eq(99, "ada's ante should be taken");
   });
-  it("acceptGame should generate a random starting player and cards", async () => {
+  it("joinGame should generate a random starting player and cards", async () => {
     const gid = 0;
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame(ada.address);
+    await fheKuhnPoker.connect(bob).createGame();
 
     const startingPlayer = {
       A: 0,
@@ -198,7 +180,7 @@ describe("FHEKuhnPoker", function () {
     const rngSnapId = await takeSnapshot();
 
     for (let i = 0; i < 100; i++) {
-      await fheKuhnPoker.connect(ada).acceptGame(gid);
+      await fheKuhnPoker.connect(ada).joinGame(gid);
       const game = await fheKuhnPoker.games(gid);
 
       if (game.startingPlayer == 0n) startingPlayer.A += 1;
@@ -235,8 +217,8 @@ describe("FHEKuhnPoker", function () {
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame(ada.address);
-    await fheKuhnPoker.connect(ada).acceptGame(gid);
+    await fheKuhnPoker.connect(bob).createGame();
+    await fheKuhnPoker.connect(ada).joinGame(gid);
 
     // Revert if invalid gid
     let permission = await createFhenixContractPermission(hre, bob, fheKuhnPokerAddress);
@@ -265,8 +247,8 @@ describe("FHEKuhnPoker", function () {
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame(ada.address);
-    await fheKuhnPoker.connect(ada).acceptGame(gid);
+    await fheKuhnPoker.connect(bob).createGame();
+    await fheKuhnPoker.connect(ada).joinGame(gid);
 
     const game = await fheKuhnPoker.games(gid);
 
@@ -287,7 +269,7 @@ describe("FHEKuhnPoker", function () {
 
     await fheKuhnPoker.connect(bob).dealMeIn(1);
     await fheKuhnPoker.connect(ada).dealMeIn(1);
-    await fheKuhnPoker.connect(bob).createGame(ada.address);
+    await fheKuhnPoker.connect(bob).createGame();
 
     // Game not yet started
     await expect(fheKuhnPoker.connect(bob).performAction(gid, PlayerAction.BET)).to.be.revertedWithCustomError(
@@ -295,7 +277,7 @@ describe("FHEKuhnPoker", function () {
       "GameNotStarted",
     );
 
-    await fheKuhnPoker.connect(ada).acceptGame(gid);
+    await fheKuhnPoker.connect(ada).joinGame(gid);
     let game = await fheKuhnPoker.games(gid);
 
     // Invalid gid
@@ -334,8 +316,8 @@ describe("FHEKuhnPoker", function () {
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame(ada.address);
-    await fheKuhnPoker.connect(ada).acceptGame(gid);
+    await fheKuhnPoker.connect(bob).createGame();
+    await fheKuhnPoker.connect(ada).joinGame(gid);
 
     const game = await fheKuhnPoker.games(gid);
     const startingPlayer = game.startingPlayer === 0n ? bob : ada;
