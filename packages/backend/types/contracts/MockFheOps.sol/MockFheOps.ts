@@ -18,13 +18,14 @@ import type {
   TypedEventLog,
   TypedListener,
   TypedContractMethod,
-} from "../../../common";
+} from "../../common";
 
-export interface FheOpsInterface extends Interface {
+export interface MockFheOpsInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "add"
       | "and"
+      | "boolToBytes"
       | "cast"
       | "decrypt"
       | "div"
@@ -36,6 +37,7 @@ export interface FheOpsInterface extends Interface {
       | "lt"
       | "lte"
       | "max"
+      | "maxValue"
       | "min"
       | "mul"
       | "ne"
@@ -50,6 +52,7 @@ export interface FheOpsInterface extends Interface {
       | "shr"
       | "sub"
       | "trivialEncrypt"
+      | "uint256ToBytes"
       | "verify"
       | "xor"
   ): FunctionFragment;
@@ -61,6 +64,10 @@ export interface FheOpsInterface extends Interface {
   encodeFunctionData(
     functionFragment: "and",
     values: [BigNumberish, BytesLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "boolToBytes",
+    values: [boolean]
   ): string;
   encodeFunctionData(
     functionFragment: "cast",
@@ -102,6 +109,10 @@ export interface FheOpsInterface extends Interface {
   encodeFunctionData(
     functionFragment: "max",
     values: [BigNumberish, BytesLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "maxValue",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "min",
@@ -160,6 +171,10 @@ export interface FheOpsInterface extends Interface {
     values: [BytesLike, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "uint256ToBytes",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "verify",
     values: [BigNumberish, BytesLike, BigNumberish]
   ): string;
@@ -170,6 +185,10 @@ export interface FheOpsInterface extends Interface {
 
   decodeFunctionResult(functionFragment: "add", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "and", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "boolToBytes",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "cast", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "decrypt", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "div", data: BytesLike): Result;
@@ -184,6 +203,7 @@ export interface FheOpsInterface extends Interface {
   decodeFunctionResult(functionFragment: "lt", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "lte", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "max", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "maxValue", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "min", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "mul", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ne", data: BytesLike): Result;
@@ -201,15 +221,19 @@ export interface FheOpsInterface extends Interface {
     functionFragment: "trivialEncrypt",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "uint256ToBytes",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "verify", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "xor", data: BytesLike): Result;
 }
 
-export interface FheOps extends BaseContract {
-  connect(runner?: ContractRunner | null): FheOps;
+export interface MockFheOps extends BaseContract {
+  connect(runner?: ContractRunner | null): MockFheOps;
   waitForDeployment(): Promise<this>;
 
-  interface: FheOpsInterface;
+  interface: MockFheOpsInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -260,14 +284,16 @@ export interface FheOps extends BaseContract {
     "view"
   >;
 
+  boolToBytes: TypedContractMethod<[value: boolean], [string], "view">;
+
   cast: TypedContractMethod<
-    [utype: BigNumberish, input: BytesLike, toType: BigNumberish],
+    [arg0: BigNumberish, input: BytesLike, toType: BigNumberish],
     [string],
     "view"
   >;
 
   decrypt: TypedContractMethod<
-    [utype: BigNumberish, input: BytesLike, defaultValue: BigNumberish],
+    [arg0: BigNumberish, input: BytesLike, arg2: BigNumberish],
     [bigint],
     "view"
   >;
@@ -285,7 +311,7 @@ export interface FheOps extends BaseContract {
   >;
 
   getNetworkPublicKey: TypedContractMethod<
-    [securityZone: BigNumberish],
+    [arg0: BigNumberish],
     [string],
     "view"
   >;
@@ -322,6 +348,8 @@ export interface FheOps extends BaseContract {
     "view"
   >;
 
+  maxValue: TypedContractMethod<[utype: BigNumberish], [bigint], "view">;
+
   min: TypedContractMethod<
     [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
     [string],
@@ -353,7 +381,7 @@ export interface FheOps extends BaseContract {
   >;
 
   random: TypedContractMethod<
-    [utype: BigNumberish, seed: BigNumberish, securityZone: BigNumberish],
+    [utype: BigNumberish, arg1: BigNumberish, arg2: BigNumberish],
     [string],
     "view"
   >;
@@ -365,20 +393,20 @@ export interface FheOps extends BaseContract {
   >;
 
   req: TypedContractMethod<
-    [utype: BigNumberish, input: BytesLike],
+    [arg0: BigNumberish, input: BytesLike],
     [string],
     "view"
   >;
 
   sealOutput: TypedContractMethod<
-    [utype: BigNumberish, ctHash: BytesLike, pk: BytesLike],
+    [arg0: BigNumberish, ctHash: BytesLike, arg2: BytesLike],
     [string],
     "view"
   >;
 
   select: TypedContractMethod<
     [
-      utype: BigNumberish,
+      arg0: BigNumberish,
       controlHash: BytesLike,
       ifTrueHash: BytesLike,
       ifFalseHash: BytesLike
@@ -388,13 +416,13 @@ export interface FheOps extends BaseContract {
   >;
 
   shl: TypedContractMethod<
-    [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [arg0: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
     [string],
     "view"
   >;
 
   shr: TypedContractMethod<
-    [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [arg0: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
     [string],
     "view"
   >;
@@ -406,13 +434,15 @@ export interface FheOps extends BaseContract {
   >;
 
   trivialEncrypt: TypedContractMethod<
-    [input: BytesLike, toType: BigNumberish, securityZone: BigNumberish],
+    [input: BytesLike, toType: BigNumberish, arg2: BigNumberish],
     [string],
     "view"
   >;
 
+  uint256ToBytes: TypedContractMethod<[value: BigNumberish], [string], "view">;
+
   verify: TypedContractMethod<
-    [utype: BigNumberish, input: BytesLike, securityZone: BigNumberish],
+    [arg0: BigNumberish, input: BytesLike, arg2: BigNumberish],
     [string],
     "view"
   >;
@@ -442,16 +472,19 @@ export interface FheOps extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "boolToBytes"
+  ): TypedContractMethod<[value: boolean], [string], "view">;
+  getFunction(
     nameOrSignature: "cast"
   ): TypedContractMethod<
-    [utype: BigNumberish, input: BytesLike, toType: BigNumberish],
+    [arg0: BigNumberish, input: BytesLike, toType: BigNumberish],
     [string],
     "view"
   >;
   getFunction(
     nameOrSignature: "decrypt"
   ): TypedContractMethod<
-    [utype: BigNumberish, input: BytesLike, defaultValue: BigNumberish],
+    [arg0: BigNumberish, input: BytesLike, arg2: BigNumberish],
     [bigint],
     "view"
   >;
@@ -471,7 +504,7 @@ export interface FheOps extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "getNetworkPublicKey"
-  ): TypedContractMethod<[securityZone: BigNumberish], [string], "view">;
+  ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
   getFunction(
     nameOrSignature: "gt"
   ): TypedContractMethod<
@@ -511,6 +544,9 @@ export interface FheOps extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "maxValue"
+  ): TypedContractMethod<[utype: BigNumberish], [bigint], "view">;
+  getFunction(
     nameOrSignature: "min"
   ): TypedContractMethod<
     [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
@@ -548,7 +584,7 @@ export interface FheOps extends BaseContract {
   getFunction(
     nameOrSignature: "random"
   ): TypedContractMethod<
-    [utype: BigNumberish, seed: BigNumberish, securityZone: BigNumberish],
+    [utype: BigNumberish, arg1: BigNumberish, arg2: BigNumberish],
     [string],
     "view"
   >;
@@ -562,14 +598,14 @@ export interface FheOps extends BaseContract {
   getFunction(
     nameOrSignature: "req"
   ): TypedContractMethod<
-    [utype: BigNumberish, input: BytesLike],
+    [arg0: BigNumberish, input: BytesLike],
     [string],
     "view"
   >;
   getFunction(
     nameOrSignature: "sealOutput"
   ): TypedContractMethod<
-    [utype: BigNumberish, ctHash: BytesLike, pk: BytesLike],
+    [arg0: BigNumberish, ctHash: BytesLike, arg2: BytesLike],
     [string],
     "view"
   >;
@@ -577,7 +613,7 @@ export interface FheOps extends BaseContract {
     nameOrSignature: "select"
   ): TypedContractMethod<
     [
-      utype: BigNumberish,
+      arg0: BigNumberish,
       controlHash: BytesLike,
       ifTrueHash: BytesLike,
       ifFalseHash: BytesLike
@@ -588,14 +624,14 @@ export interface FheOps extends BaseContract {
   getFunction(
     nameOrSignature: "shl"
   ): TypedContractMethod<
-    [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [arg0: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
     [string],
     "view"
   >;
   getFunction(
     nameOrSignature: "shr"
   ): TypedContractMethod<
-    [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [arg0: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
     [string],
     "view"
   >;
@@ -609,14 +645,17 @@ export interface FheOps extends BaseContract {
   getFunction(
     nameOrSignature: "trivialEncrypt"
   ): TypedContractMethod<
-    [input: BytesLike, toType: BigNumberish, securityZone: BigNumberish],
+    [input: BytesLike, toType: BigNumberish, arg2: BigNumberish],
     [string],
     "view"
   >;
   getFunction(
+    nameOrSignature: "uint256ToBytes"
+  ): TypedContractMethod<[value: BigNumberish], [string], "view">;
+  getFunction(
     nameOrSignature: "verify"
   ): TypedContractMethod<
-    [utype: BigNumberish, input: BytesLike, securityZone: BigNumberish],
+    [arg0: BigNumberish, input: BytesLike, arg2: BigNumberish],
     [string],
     "view"
   >;

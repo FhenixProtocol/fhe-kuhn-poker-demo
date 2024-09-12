@@ -108,6 +108,11 @@ const _abi = [
         name: "input",
         type: "bytes",
       },
+      {
+        internalType: "uint256",
+        name: "defaultValue",
+        type: "uint256",
+      },
     ],
     name: "decrypt",
     outputs: [

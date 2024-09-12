@@ -1,19 +1,8 @@
 import { expect } from "chai";
-import { ethers, fhenixjs } from "hardhat";
-import { Permission } from "fhenixjs";
+import hre, { ethers, fhenixjs } from "hardhat";
 import { Counter } from "../types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { getTokensFromFaucet } from "./utils";
-
-export async function createFhenixContractPermission(contractAddress: string): Promise<Permission> {
-  const provider = ethers.provider;
-  const signer = (await ethers.getSigners())[0];
-
-  const permit = await fhenixjs.generatePermit(contractAddress, provider, signer);
-  const permission = fhenixjs.extractPermitPermission(permit);
-
-  return permission;
-}
+import { createFhenixContractPermission, getTokensFromFaucet, unsealMockFheOpsSealed } from "./utils";
 
 describe("Counter", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -23,7 +12,7 @@ describe("Counter", function () {
   let signer: SignerWithAddress;
 
   before(async () => {
-    await getTokensFromFaucet();
+    await getTokensFromFaucet(signer.address);
 
     const counterFactory = await ethers.getContractFactory("Counter");
     counter = (await counterFactory.deploy()) as Counter;
@@ -50,10 +39,11 @@ describe("Counter", function () {
 
       // Create a permission, which is used to seal the Counter return value
       // Which is then decrypted outside the contract (within this test / frontend)
-      const permission = await createFhenixContractPermission(counterAddress);
+      const permission = await createFhenixContractPermission(hre, signer, counterAddress);
 
       const sealedCountedAmount = await counter.connect(signer).getCounterPermitSealed(permission);
-      const unsealedCountedAmount = fhenixjs.unseal(counterAddress, sealedCountedAmount.data);
+      // const unsealedCountedAmount = fhenixjs.unseal(counterAddress, sealedCountedAmount.data);
+      const unsealedCountedAmount = unsealMockFheOpsSealed(sealedCountedAmount.data);
 
       expect(Number(unsealedCountedAmount) === toCount);
       expect(unsealedCountedAmount).to.equal(toCount, "The counted amount should increase by toCount");

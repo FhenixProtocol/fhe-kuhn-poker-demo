@@ -27,7 +27,7 @@ const testnetConfig: any = {
 // Select either private keys or mnemonic from .env file or environment variables
 const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
 if (!deployerPrivateKey) {
-  let mnemonic = process.env.DEPLOYER_MNEMONIC;
+  const mnemonic = process.env.DEPLOYER_MNEMONIC;
   if (!mnemonic) {
     throw new Error("No mnemonic or private key provided, please set MNEMONIC or KEY in your .env file");
   }
@@ -51,8 +51,7 @@ const config: HardhatUserConfig = {
     //   },
     // },
   },
-  // Optional: defaultNetwork is already being set to "localfhenix" by fhenix-hardhat-plugin
-  defaultNetwork: "localfhenix",
+  defaultNetwork: "hardhat",
   namedAccounts: {
     deployer: {
       // By default, it will take the first Hardhat account as the deployer

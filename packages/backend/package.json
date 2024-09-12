@@ -21,7 +21,8 @@
     "task:addCount": "hardhat task:addCount",
     "task:getCount": "hardhat task:getCount",
     "task:getFunds": "hardhat task:getFunds",
-    "test": "REPORT_GAS=true hardhat test --network localfhenix",
+    "test": "REPORT_GAS=true hardhat test",
+    "test:localfhenix": "REPORT_GAS=true hardhat test --network localfhenix",
     "verify": "hardhat etherscan-verify"
   },
   "dependencies": {
@@ -48,12 +49,14 @@
     "@typescript-eslint/eslint-plugin": "~6.7.3",
     "@typescript-eslint/parser": "~6.7.3",
     "chai": "~4.3.6",
+    "chalk": "^5.3.0",
     "eslint": "~8.26.0",
     "eslint-config-prettier": "~8.5.0",
     "eslint-plugin-prettier": "~4.2.1",
     "ethers": "~6.10.0",
     "fhenix-hardhat-docker": "0.3.0-alpha.2",
     "fhenix-hardhat-plugin": "0.3.0-alpha.2",
+    "fhenixjs": "0.4.0-alpha.6",
     "hardhat": "~2.19.4",
     "hardhat-deploy": "~0.11.45",
     "hardhat-deploy-ethers": "~0.4.1",
@@ -64,7 +67,6 @@
     "solidity-coverage": "~0.8.5",
     "ts-node": "~10.9.1",
     "typechain": "~8.3.2",
-    "typescript": "~5.1.6",
-    "fhenixjs": "0.4.0-alpha.6"
+    "typescript": "~5.1.6"
   }
 }
