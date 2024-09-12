@@ -180,6 +180,9 @@ importers:
       fhenixjs:
         specifier: 0.4.0-alpha.6
         version: 0.4.0-alpha.6
+      framer-motion:
+        specifier: ^11.5.4
+        version: 11.5.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       immer:
         specifier: ^10.1.1
         version: 10.1.1
@@ -3242,6 +3245,20 @@ packages:
 
   fraction.js@4.3.7:
     resolution: {integrity: sha512-ZsDfxO51wGAXREY55a7la9LScWpwv9RxIrYABrlvOFBlH/ShPnrtsXeuUIfXKKOVicNxQ+o8JTbJvjS4M89yew==}
+
+  framer-motion@11.5.4:
+    resolution: {integrity: sha512-E+tb3/G6SO69POkdJT+3EpdMuhmtCh9EWuK4I1DnIC23L7tFPrl8vxP+LSovwaw6uUr73rUbpb4FgK011wbRJQ==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0
+      react-dom: ^18.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   fs-extra@0.30.0:
     resolution: {integrity: sha512-UvSPKyhMn6LEd/WpUaV9C9t3zATuqoqfWc3QdPhPLb58prN9tqYPlPWi8Krxi44loBoUzlobqZ3+8tGpxxSzwA==}
@@ -10321,6 +10338,13 @@ snapshots:
   fp-ts@1.19.3: {}
 
   fraction.js@4.3.7: {}
+
+  framer-motion@11.5.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+    dependencies:
+      tslib: 2.7.0
+    optionalDependencies:
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
 
   fs-extra@0.30.0:
     dependencies:

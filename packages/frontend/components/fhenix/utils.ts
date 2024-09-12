@@ -149,13 +149,13 @@ export const getAvailableActions = (a1: ActionOption, a2: ActionOption): ActionO
   }
   if (a2 == PlayerAction.EMPTY) {
     return AllPlayerActions.filter(key => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      return !ExhaustiveGameBranch.actions[a1].branch!.actions[key].revert;
+      const leaf = ExhaustiveGameBranch.actions[a1].branch?.actions[key];
+      return leaf != null && !leaf.revert;
     });
   }
   return AllPlayerActions.filter(key => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return !ExhaustiveGameBranch.actions[a1].branch!.actions[a2].branch!.actions[key].revert;
+    const leaf = ExhaustiveGameBranch.actions[a1].branch?.actions[a2].branch?.actions[key];
+    return leaf != null && !leaf.revert;
   });
 };
 

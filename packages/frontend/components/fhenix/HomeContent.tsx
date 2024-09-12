@@ -5,7 +5,6 @@ import { Address } from "../scaffold-eth";
 import { useState } from "react";
 import { useInterval } from "usehooks-ts";
 import { ZeroAddress } from "ethers";
-import { AbiFunctionReturnType, ContractAbi } from "~~/utils/scaffold-eth/contract";
 import { displayGameId, ellipseAddress, GameInfo, generateSuitsFromGid, outcomeToText } from "./utils";
 import { PlayingCard } from "./PlayingCard";
 import Link from "next/link";
