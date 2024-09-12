@@ -52,6 +52,13 @@ export type PermissionStructOutput = [publicKey: string, signature: string] & {
   signature: string;
 };
 
+export type SealedUintStruct = { data: string; utype: BigNumberish };
+
+export type SealedUintStructOutput = [data: string, utype: bigint] & {
+  data: string;
+  utype: bigint;
+};
+
 export interface FHEKuhnPokerInterface extends Interface {
   getFunction(
     nameOrSignature:
@@ -357,7 +364,7 @@ export interface FHEKuhnPoker extends BaseContract {
 
   getGameCard: TypedContractMethod<
     [permission: PermissionStruct, _gid: BigNumberish],
-    [string],
+    [SealedUintStructOutput],
     "view"
   >;
 
@@ -443,7 +450,7 @@ export interface FHEKuhnPoker extends BaseContract {
     nameOrSignature: "getGameCard"
   ): TypedContractMethod<
     [permission: PermissionStruct, _gid: BigNumberish],
-    [string],
+    [SealedUintStructOutput],
     "view"
   >;
   getFunction(

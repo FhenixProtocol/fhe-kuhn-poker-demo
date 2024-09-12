@@ -5,6 +5,7 @@ pragma solidity >=0.8.13 <0.9.0;
 import "@fhenixprotocol/contracts/FHE.sol";
 import "hardhat/console.sol";
 import { Permissioned, Permission } from "@fhenixprotocol/contracts/access/Permissioned.sol";
+import { SealedUint, TypedBindingsEuint8 } from "./FHETypedSealed.sol";
 
 // Simplified Poker (https://en.wikipedia.org/wiki/Kuhn_poker) on Fhenix
 // Powered and secured by FHE
@@ -51,6 +52,8 @@ struct GameOutcome {
 }
 
 contract FHEKuhnPoker is Permissioned {
+	using TypedBindingsEuint8 for euint8;
+
 	euint32 private counter;
 	address public owner;
 
@@ -291,14 +294,14 @@ contract FHEKuhnPoker is Permissioned {
 	function getGameCard(
 		Permission memory permission,
 		uint256 _gid
-	) public view onlySender(permission) returns (string memory) {
+	) public view onlySender(permission) returns (SealedUint memory) {
 		if (_gid >= gid) revert InvalidGame();
 		Game memory game = games[_gid];
 		if (msg.sender == game.playerA) {
-			return game.eCardA.seal(permission.publicKey);
+			return game.eCardA.sealTyped(permission.publicKey);
 		}
 		if (msg.sender == game.playerB) {
-			return game.eCardB.seal(permission.publicKey);
+			return game.eCardB.sealTyped(permission.publicKey);
 		}
 		revert NotPlayerInGame();
 	}

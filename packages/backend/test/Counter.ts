@@ -5,21 +5,18 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { createFhenixContractPermission, getTokensFromFaucet, unsealMockFheOpsSealed } from "./utils";
 
 describe("Counter", function () {
-  // We define a fixture to reuse the same setup in every test.
-
+  let signer: SignerWithAddress;
   let counter: Counter;
   let counterAddress: string;
-  let signer: SignerWithAddress;
 
   before(async () => {
+    signer = (await ethers.getSigners())[0];
     await getTokensFromFaucet(signer.address);
 
     const counterFactory = await ethers.getContractFactory("Counter");
     counter = (await counterFactory.deploy()) as Counter;
     await counter.waitForDeployment();
     counterAddress = await counter.getAddress();
-
-    signer = (await ethers.getSigners())[0];
   });
 
   describe("Deployment", function () {

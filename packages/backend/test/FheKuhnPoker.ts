@@ -272,11 +272,11 @@ describe("FHEKuhnPoker", function () {
 
     let permission = await createFhenixContractPermission(hre, bob, fheKuhnPokerAddress);
     const bobSealedCard = await fheKuhnPoker.connect(bob).getGameCard(permission, gid);
-    const bobUnsealedCard = unsealMockFheOpsSealed(bobSealedCard);
+    const bobUnsealedCard = unsealMockFheOpsSealed(bobSealedCard.data);
 
     permission = await createFhenixContractPermission(hre, ada, fheKuhnPokerAddress);
     const adaSealedCard = await fheKuhnPoker.connect(ada).getGameCard(permission, gid);
-    const adaUnsealedCard = unsealMockFheOpsSealed(adaSealedCard);
+    const adaUnsealedCard = unsealMockFheOpsSealed(adaSealedCard.data);
 
     expect(bobUnsealedCard).to.eq(game.eCardA, "bob's unsealed card should match");
     expect(adaUnsealedCard).to.eq(game.eCardB, "ada's unsealed card should match");
