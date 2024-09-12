@@ -5,8 +5,8 @@ import { useAccount, useNetwork } from "wagmi";
 import { PlayingCard } from "~~/components/fhenix/PlayingCard";
 import {
   cardSymbol,
-  displayGameId,
   ellipseAddress,
+  GameOutcome,
   generateSuitsFromGid,
   getAvailableActions,
   getGameActionIndex,
@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Fragment, useState } from "react";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 import { useInterval } from "usehooks-ts";
+import { ZeroAddress } from "ethers";
 
 type PageProps = {
   params: { gid: string };
@@ -43,9 +44,11 @@ type PlayerProps = {
   address: string;
   suit: "red" | "black";
   card?: number;
-  activePlayer: string;
-  playersActions: PlayerAction[];
+  activePlayer?: string;
+  playersActions: { index: number; action: PlayerAction }[];
   requiresPermissionToReveal?: boolean;
+  winner: string;
+  outcome: GameOutcome;
 };
 const PlayerWithCard = ({
   player,
@@ -55,13 +58,18 @@ const PlayerWithCard = ({
   activePlayer,
   playersActions,
   requiresPermissionToReveal = false,
+  winner,
+  outcome,
 }: PlayerProps) => {
   const { symbol, hidden } = cardSymbol(card);
   const isActivePlayer = address === activePlayer;
+  const isWinner = winner !== ZeroAddress && address === winner;
+  const isLoser = winner !== ZeroAddress && address !== winner;
+  const outcomeIsShowdown = outcome === GameOutcome.A_BY_SHOWDOWN || outcome === GameOutcome.B_BY_SHOWDOWN;
   return (
     <div
-      className={`flex h-[300px] ${
-        player === 1 ? "flex-col items-start mb-44" : "flex-col-reverse items-end mt-44"
+      className={`flex h-[300px] ${player === 1 ? "flex-col items-start mb-44" : "flex-col-reverse items-end mt-44"} ${
+        isLoser && "opacity-40"
       } justify-start text-sm relative`}
     >
       <div
@@ -83,22 +91,37 @@ const PlayerWithCard = ({
       <div className="text-white m-2 text-sm">
         CHIPS: <b className="text-lg">4</b>
       </div>
-      <PlayingCard suit={suit} rank={symbol} hidden={hidden} ping={isActivePlayer}>
+      <PlayingCard suit={suit} rank={symbol} hidden={hidden} gold={isWinner} wiggle={isActivePlayer || isWinner}>
         {requiresPermissionToReveal && <RevealCardButton />}
       </PlayingCard>
       <br />
       <AnimatePresence>
-        {playersActions.map((action, i) => (
+        {playersActions
+          .filter(({ action }) => action !== PlayerAction.EMPTY)
+          .map(({ index, action }) => (
+            <motion.div
+              initial={{ opacity: 0, y: player === 1 ? -10 : 10, rotate: "0deg" }}
+              animate={{ opacity: 1, y: 0, rotate: "6deg" }}
+              exit={{ opacity: 0, y: player === 1 ? -10 : 10, rotate: "0deg" }}
+              className="text-white font-bold text-lg mx-4 tracking-wider"
+              key={index}
+            >
+              {index}. {playerActionNumToName(action)}!
+            </motion.div>
+          ))}
+        {isWinner && (
           <motion.div
             initial={{ opacity: 0, y: player === 1 ? -10 : 10, rotate: "0deg" }}
             animate={{ opacity: 1, y: 0, rotate: "6deg" }}
             exit={{ opacity: 0, y: player === 1 ? -10 : 10, rotate: "0deg" }}
-            className="text-white font-bold text-lg mx-4 tracking-wider"
-            key={i}
+            className={`text-white font-bold text-lg mx-4 tracking-wider my-4 ${player === 2 && "text-right"}`}
+            key="winner"
           >
-            {playerActionNumToName(action)}!
+            WINNER BY
+            <br />
+            {outcomeIsShowdown ? "SHOWDOWN" : "FOLD"}!
           </motion.div>
-        ))}
+        )}
       </AnimatePresence>
     </div>
   );
@@ -149,18 +172,29 @@ const Game = ({ params }: PageProps) => {
   const startingPlayer = game.startingPlayer === 0 ? game.playerA : game.playerB;
   const oppositePlayer = game.startingPlayer === 0 ? game.playerB : game.playerA;
 
+  const startingPlayerActions = [
+    { index: 1, action: game.action1 },
+    { index: 3, action: game.action3 },
+  ];
+  const oppositePlayerActions = [{ index: 2, action: game.action2 }];
+  const player1Actions = player1 === startingPlayer ? startingPlayerActions : oppositePlayerActions;
+  const player2Actions = player1 === startingPlayer ? oppositePlayerActions : startingPlayerActions;
+
   const actionPlayers = {
     1: { player: startingPlayer, opposite: oppositePlayer },
     2: { player: oppositePlayer, opposite: startingPlayer },
     3: { player: startingPlayer, opposite: oppositePlayer },
   };
 
-  const actionIndex = getGameActionIndex(game);
-  const activePlayer = actionPlayers[actionIndex].player;
+  const winner = game.outcome.winner;
+  const playerIsWinner = winner === address;
+  const outcome = game.outcome.outcome;
+  const outcomeIsShowdown = outcome === GameOutcome.A_BY_SHOWDOWN || outcome === GameOutcome.B_BY_SHOWDOWN;
 
-  console.log({
-    game,
-  });
+  const revealedPlayer1Card = userIsPlayerA ? game.outcome.cardB : game.outcome.cardA;
+
+  const actionIndex = getGameActionIndex(game);
+  const activePlayer = winner === ZeroAddress ? actionPlayers[actionIndex].player : undefined;
 
   const availableActionIds = getAvailableActions(game.action1, game.action2);
 
@@ -171,17 +205,18 @@ const Game = ({ params }: PageProps) => {
   };
 
   return (
-    <div className="flex gap-12 items-center flex-col flex-grow py-10">
-      <p>{displayGameId(gid)}</p>
+    <div className="flex gap-12 justify-center items-center flex-col flex-grow py-10">
       <div className="flex flex-row gap-16 justify-center items-center relative">
         <div className="absolute rounded-full bg-green-600 -inset-x-36 inset-y-12 -z-10 shadow-lg" />
         <PlayerWithCard
           player={1}
           address={player1}
           suit={suit1}
-          playersActions={[1]}
-          card={undefined}
+          playersActions={player1Actions}
+          card={winner != ZeroAddress ? revealedPlayer1Card : undefined}
           activePlayer={activePlayer}
+          winner={winner}
+          outcome={outcome}
         />
         <div className="flex flex-col justify-center items-center text-white">
           <span className="text-sm">POT:</span>
@@ -193,12 +228,14 @@ const Game = ({ params }: PageProps) => {
           suit={suit2}
           card={playerCard == null ? undefined : Number(playerCard)}
           activePlayer={activePlayer}
-          playersActions={[4]}
+          playersActions={player2Actions}
           requiresPermissionToReveal={playerCard == null}
+          winner={winner}
+          outcome={outcome}
         />
       </div>
       <div className="flex flex-col justify-center items-center gap-4">
-        {activePlayer === address && (
+        {activePlayer != null && activePlayer === address && (
           <>
             <div>Its your turn:</div>
             <div className="flex flex-row gap-4">
@@ -218,7 +255,7 @@ const Game = ({ params }: PageProps) => {
             </div>
           </>
         )}
-        {activePlayer !== address && (
+        {activePlayer != null && activePlayer !== address && (
           <div>
             Waiting for <b>Your Opponent</b> to{" "}
             {availableActionIds.map((actionId, i) => (
@@ -227,6 +264,12 @@ const Game = ({ params }: PageProps) => {
                 {i < availableActionIds.length - 1 && " or "}
               </Fragment>
             ))}
+          </div>
+        )}
+        {winner != ZeroAddress && (
+          <div className="font-bold">
+            {playerIsWinner ? "You have" : "Your Opponent has"} won {game.pot} chips by{" "}
+            {outcomeIsShowdown ? "SHOWDOWN" : "FOLD"}!
           </div>
         )}
       </div>

@@ -5,8 +5,7 @@ import { Address } from "../scaffold-eth";
 import { useState } from "react";
 import { useInterval } from "usehooks-ts";
 import { ZeroAddress } from "ethers";
-import { displayGameId, ellipseAddress, GameInfo, generateSuitsFromGid, outcomeToText } from "./utils";
-import { PlayingCard } from "./PlayingCard";
+import { displayGameId, ellipseAddress, GameInfo, outcomeToText } from "./utils";
 import Link from "next/link";
 
 const JoinGameButton: React.FC<{ gid: bigint }> = ({ gid }) => {
@@ -214,18 +213,9 @@ const HomeContent = () => {
     refetchOpenGames();
   }, 2000);
 
-  const [suit1, suit2] = generateSuitsFromGid(2n);
-
   return (
     <>
-      <div className="flex flex-row gap-4">
-        <PlayingCard hidden suit={suit2} />
-        <PlayingCard rank="K" suit={suit1} />
-        <PlayingCard rank="Q" suit={suit2} />
-        <PlayingCard rank="J" suit={suit1} />
-      </div>
       <PlayerCard />
-
       <p>Your Active Games</p>
       <div className="flex flex-row justify-center items-center gap-4 flex-wrap">
         {userGames != null &&
