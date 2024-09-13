@@ -14,7 +14,7 @@ const Card = ({
   empty?: boolean;
 }) => (
   <div
-    className={`w-24 h-34 grow bg-gradient-to-br ${
+    className={`w-24 h-36 bg-gradient-to-br ${
       empty
         ? "from-green-700 to-green-700"
         : gold

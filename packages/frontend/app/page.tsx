@@ -6,6 +6,7 @@ import { PlayingCard } from "~~/components/fhenix/PlayingCard";
 import {
   cardSymbol,
   ellipseAddress,
+  GameInfo,
   GameOutcome,
   generateSuitsFromGid,
   getAvailableActions,
@@ -18,24 +19,10 @@ import { useFhenixScaffoldContractRead } from "~~/hooks/scaffold-eth/useFhenixSc
 import { useCreateFhenixPermit } from "~~/services/fhenix/store";
 import { InjectFhenixPermission } from "~~/utils/fhenixUtilsTypes";
 import { motion, AnimatePresence } from "framer-motion";
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 import { useInterval } from "usehooks-ts";
 import { ZeroAddress } from "ethers";
-
-// Gameplay flow
-// User joins to empty table
-// User has button to find a game
-// User presses button to find a game, once `userActiveGame` is a non-zero number, show the game board
-// User plays the game
-// After game ends, users shown: <FIND NEW GAME> / <REQUEST REMATCH>
-// <FIND NEW GAME>
-//    Game board empties
-// <REQUEST REMATCH>
-//    * disabled and replaced with "Opponent Left" if opponents `userActiveGame` changes
-//    * changes to "ACCEPT REMATCH" if opponents `userActiveGame` switches to the rematchGid
-//    Requests rematch on click
-//    If opponent leav
 
 const RevealCardButton = () => {
   const createFhenixPermit = useCreateFhenixPermit();
@@ -106,7 +93,7 @@ const PlayerWithCard = ({
         CHIPS: <code className="text-lg">{chips == null ? "..." : chips.toString()}</code>
       </div>
       <PlayingCard
-        empty={gid == null || gid === 0n}
+        empty={gid == null || gid === 0n || address === ZeroAddress}
         suit={suit}
         rank={symbol}
         hidden={hidden}
@@ -282,6 +269,95 @@ const PlayerSeat: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
   );
 };
 
+const ActionButton: React.FC<{ disabled?: boolean; gid: bigint; actionId: number }> = ({ gid, actionId }) => {
+  const { writeAsync, isMining } = useScaffoldContractWrite({
+    contractName: "FHEKuhnPoker",
+    functionName: "performAction",
+    args: [gid, actionId],
+  });
+
+  return (
+    <button disabled={isMining} className="btn btn-primary w-36" onClick={() => writeAsync()}>
+      {isMining && <span className="loading loading-spinner loading-xs" />}
+      {playerActionNumToName(actionId)}
+    </button>
+  );
+};
+
+const DealMeInButton: React.FC<{ disabled?: boolean }> = ({ disabled }) => {
+  const { writeAsync, isMining } = useScaffoldContractWrite({
+    contractName: "FHEKuhnPoker",
+    functionName: "dealMeIn",
+    args: [100n],
+  });
+
+  return (
+    <button disabled={disabled || isMining} className="btn btn-primary w-36" onClick={() => writeAsync()}>
+      {isMining && <span className="loading loading-spinner loading-xs" />}
+      Deal Me In
+    </button>
+  );
+};
+
+const FindGameButton: React.FC<{ disabled?: boolean }> = ({ disabled }) => {
+  const { writeAsync, isMining } = useScaffoldContractWrite({
+    contractName: "FHEKuhnPoker",
+    functionName: "findGame",
+  });
+
+  return (
+    <button disabled={disabled || isMining} className="btn btn-primary w-36" onClick={() => writeAsync()}>
+      {isMining && <span className="loading loading-spinner loading-xs" />}
+      Find New Game
+    </button>
+  );
+};
+
+const RematchButton: React.FC<{ disabled?: boolean; gid: bigint }> = ({ disabled, gid }) => {
+  const { writeAsync, isMining } = useScaffoldContractWrite({
+    contractName: "FHEKuhnPoker",
+    functionName: "rematch",
+    args: [gid],
+  });
+
+  return (
+    <button disabled={disabled || isMining} className="btn btn-primary w-36" onClick={() => writeAsync()}>
+      {isMining && <span className="loading loading-spinner loading-xs" />}
+      Rematch
+    </button>
+  );
+};
+
+const ResignButton: React.FC<{ disabled?: boolean; gid: bigint }> = ({ disabled, gid }) => {
+  const { writeAsync, isMining } = useScaffoldContractWrite({
+    contractName: "FHEKuhnPoker",
+    functionName: "resign",
+    args: [gid],
+  });
+
+  return (
+    <button disabled={disabled || isMining} className="btn btn-primary w-36" onClick={() => writeAsync()}>
+      {isMining && <span className="loading loading-spinner loading-xs" />}
+      Resign
+    </button>
+  );
+};
+
+const ExitGameButton: React.FC<{ disabled?: boolean; gid: bigint; text: string }> = ({ disabled, gid, text }) => {
+  const { writeAsync, isMining } = useScaffoldContractWrite({
+    contractName: "FHEKuhnPoker",
+    functionName: "exitGame",
+    args: [gid],
+  });
+
+  return (
+    <button disabled={disabled || isMining} className="btn btn-primary w-36" onClick={() => writeAsync()}>
+      {isMining && <span className="loading loading-spinner loading-xs" />}
+      {text}
+    </button>
+  );
+};
+
 const GameActionSection: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
   const { address } = useAccount();
   const { chain: connectedChain } = useNetwork();
@@ -292,23 +368,11 @@ const GameActionSection: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
     functionName: "getGame",
     args: [gid],
   });
-
-  const { writeAsync, isMining } = useScaffoldContractWrite({
-    contractName: "FHEKuhnPoker",
-    functionName: "performAction",
-    args: [undefined, undefined],
-  });
-  const [performingAction, setPerformingAction] = useState(0);
-
   const writeDisabled = !connectedChain || connectedChain?.id !== targetNetwork.id;
 
   useInterval(refetch, 2000);
 
   if (gid == null || game == null) return null;
-
-  // If gid is 0, find game
-  // If gid is an active game, show user / opponent actions / outcome
-  // If gid is a requested rematch, show "Find New Game" / "Cancel Rematch"
 
   const activePlayer = game.state.activePlayer;
 
@@ -319,35 +383,19 @@ const GameActionSection: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
 
   const availableActionIds = getAvailableActions(game.state.action1, game.state.action2);
 
-  const performAction = async (actionId: number) => {
-    setPerformingAction(actionId);
-    await writeAsync({ args: [gid, actionId] });
-    setPerformingAction(0);
-  };
-
   return (
     <div className="flex flex-col justify-center items-center gap-4">
-      {activePlayer != null && activePlayer === address && (
+      {activePlayer != ZeroAddress && activePlayer === address && (
         <>
           <div>Its your turn:</div>
           <div className="flex flex-row gap-4">
             {availableActionIds.map(actionId => (
-              <button
-                disabled={writeDisabled || isMining}
-                key={actionId}
-                className="btn btn-primary w-36"
-                onClick={() => performAction(Number(actionId))}
-              >
-                {performingAction === Number(actionId) && isMining && (
-                  <span className="loading loading-spinner loading-xs" />
-                )}
-                {playerActionNumToName(actionId)}
-              </button>
+              <ActionButton disabled={writeDisabled} key={actionId} gid={gid} actionId={actionId} />
             ))}
           </div>
         </>
       )}
-      {activePlayer != null && activePlayer !== address && (
+      {activePlayer != ZeroAddress && activePlayer !== address && (
         <div>
           Waiting for <b>Your Opponent</b> to{" "}
           {availableActionIds.map((actionId, i) => (
@@ -358,10 +406,75 @@ const GameActionSection: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
           ))}
         </div>
       )}
+      {activePlayer != ZeroAddress && <ResignButton gid={gid} />}
       {winner != ZeroAddress && (
         <div className="font-bold">
           {playerIsWinner ? "You have" : "Your Opponent has"} won {game.state.pot} chips by{" "}
           {outcomeIsShowdown ? "SHOWDOWN" : "FOLD"}!
+        </div>
+      )}
+    </div>
+  );
+};
+
+const getGameState = (game: GameInfo | undefined) => {
+  if (game == null) return "loading";
+  if (game.gid === 0n) return "idle";
+  if (!game.state.accepted) return "waiting-for-partner";
+  if (game.outcome.outcome === GameOutcome.EMPTY) return "in-game";
+  return "post-game";
+};
+
+const ActionSection: React.FC<{ gid: bigint | undefined; rematchGid: bigint | undefined }> = ({ gid, rematchGid }) => {
+  const { chain: connectedChain } = useNetwork();
+  const { targetNetwork } = useTargetNetwork();
+
+  const writeDisabled = !connectedChain || connectedChain?.id !== targetNetwork.id;
+
+  const { data: game } = useScaffoldContractRead({
+    contractName: "FHEKuhnPoker",
+    functionName: "getGame",
+    args: [gid],
+  });
+
+  const gameState = getGameState(game);
+
+  return (
+    <div className="flex flex-col justify-center items-center gap-4">
+      {/* Loading */}
+      {gameState === "loading" && <p>Loading ...</p>}
+
+      {/* Not in a game */}
+      {gameState === "idle" && (
+        <div className="flex flex-col justify-center items-center gap-4">
+          <span>Welcome to Kuhn Poker, powered by Fhenix!</span>
+          <div className="flex flex-row gap-4">
+            <DealMeInButton disabled={writeDisabled} />
+            <FindGameButton disabled={writeDisabled} />
+          </div>
+        </div>
+      )}
+
+      {/* In a game, but not accepted */}
+      {gameState === "waiting-for-partner" && gid != null && (
+        <div className="flex flex-col justify-center items-center gap-4">
+          <span>Waiting for another player to join!</span>
+          <div className="flex flex-row gap-4">
+            <ExitGameButton disabled={writeDisabled} gid={gid} text="Cancel Search" />
+          </div>
+        </div>
+      )}
+
+      {/* In a game */}
+      {(gameState === "in-game" || gameState === "post-game") && <GameActionSection gid={gid} />}
+
+      {/* Game ended */}
+      {gameState === "post-game" && gid != null && (
+        <div className="flex flex-col justify-center items-center gap-4">
+          <div className="flex flex-row gap-4">
+            <FindGameButton disabled={writeDisabled} />
+            <RematchButton disabled={writeDisabled} gid={gid} />
+          </div>
         </div>
       )}
     </div>
@@ -396,7 +509,7 @@ const Home = () => {
         <GamePot gid={displayGid} />
         <PlayerSeat gid={displayGid} />
       </div>
-      <GameActionSection gid={displayGid} />
+      <ActionSection gid={displayGid} rematchGid={rematchGid} />
     </div>
   );
 };
