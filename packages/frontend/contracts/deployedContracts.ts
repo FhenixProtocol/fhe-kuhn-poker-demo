@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   412346: {
     Counter: {
-      address: "0xE1A74216A5aCF9a11EE6ad1121f269cA406F2c69",
+      address: "0x5B0ABc8c4e9Cd491C2A204bf8581Da3Ad9284ff9",
       abi: [
         {
           inputs: [],
@@ -247,7 +247,7 @@ const deployedContracts = {
       },
     },
     FHEKuhnPoker: {
-      address: "0x7270F6bE05B183AC7350bDA35D99f281D691F91b",
+      address: "0x7C1BE03Aa7489C4D7d4cc295De13b8c4BDD6b61b",
       abi: [
         {
           inputs: [],
@@ -339,6 +339,11 @@ const deployedContracts = {
         {
           inputs: [],
           name: "NotYourTurn",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "OpponentHasLeft",
           type: "error",
         },
         {
@@ -583,6 +588,31 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
+          name: "WonByResignation",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "winner",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "gid",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "pot",
+              type: "uint256",
+            },
+          ],
           name: "WonByShowdown",
           type: "event",
         },
@@ -722,9 +752,9 @@ const deployedContracts = {
               type: "uint256",
             },
             {
-              internalType: "bool",
-              name: "isRematch",
-              type: "bool",
+              internalType: "uint256",
+              name: "rematchingGid",
+              type: "uint256",
             },
             {
               internalType: "address",
@@ -847,9 +877,9 @@ const deployedContracts = {
                   type: "uint256",
                 },
                 {
-                  internalType: "bool",
-                  name: "isRematch",
-                  type: "bool",
+                  internalType: "uint256",
+                  name: "rematchingGid",
+                  type: "uint256",
                 },
                 {
                   internalType: "address",
@@ -1030,9 +1060,9 @@ const deployedContracts = {
                   type: "uint256",
                 },
                 {
-                  internalType: "bool",
-                  name: "isRematch",
-                  type: "bool",
+                  internalType: "uint256",
+                  name: "rematchingGid",
+                  type: "uint256",
                 },
                 {
                   internalType: "address",
@@ -1146,6 +1176,30 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
+              name: "_user",
+              type: "address",
+            },
+          ],
+          name: "getUserGameState",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "displayGid",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "rematchGid",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
               name: "user",
               type: "address",
             },
@@ -1160,9 +1214,9 @@ const deployedContracts = {
                   type: "uint256",
                 },
                 {
-                  internalType: "bool",
-                  name: "isRematch",
-                  type: "bool",
+                  internalType: "uint256",
+                  name: "rematchingGid",
+                  type: "uint256",
                 },
                 {
                   internalType: "address",
@@ -1330,6 +1384,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_gid",
+              type: "uint256",
+            },
+          ],
+          name: "resign",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "timeoutDuration",
           outputs: [
@@ -1337,6 +1404,25 @@ const deployedContracts = {
               internalType: "uint64",
               name: "",
               type: "uint64",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          name: "userActiveGame",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
             },
           ],
           stateMutability: "view",

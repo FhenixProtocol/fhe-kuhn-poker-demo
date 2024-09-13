@@ -29,7 +29,7 @@ enum Outcome {
 
 struct Game {
 	uint256 gid;
-	bool isRematch;
+	uint256 rematchingGid;
 	address playerA;
 	address playerB;
 	GameState state;
@@ -168,7 +168,7 @@ contract FHEKuhnPoker is Permissioned {
 			// Revert if opponent has already started a new game
 			if (userActiveGame[opponent] != _gid) revert OpponentHasLeft();
 
-			game.outcome.rematchGid = _createRematch(opponent);
+			game.outcome.rematchGid = _createRematch(_gid, opponent);
 			return;
 		}
 
@@ -206,7 +206,7 @@ contract FHEKuhnPoker is Permissioned {
 		// Cancelling game
 
 		// Only player A can cancel a rematch that hasn't been accepted
-		if (game.isRematch && msg.sender != game.playerA)
+		if (game.rematchingGid != 0 && msg.sender != game.playerA)
 			revert NotPlayerInGame();
 
 		_cancelGame(_gid);
@@ -252,11 +252,14 @@ contract FHEKuhnPoker is Permissioned {
 		emit GameCreated(msg.sender, _gid);
 	}
 
-	function _createRematch(address playerB) internal returns (uint256 _gid) {
+	function _createRematch(
+		uint256 _rematchingGid,
+		address playerB
+	) internal returns (uint256 _gid) {
 		_gid = _createGameInner();
 
 		// Rematches already know both players
-		games[_gid].isRematch = true;
+		games[_gid].rematchingGid = _rematchingGid;
 		games[_gid].playerB = playerB;
 		userActiveGame[msg.sender] = _gid;
 
@@ -336,7 +339,7 @@ contract FHEKuhnPoker is Permissioned {
 	function _cancelRematchRequestIfOpen(uint256 _gid) internal {
 		if (_gid == 0) return;
 
-		if (!games[_gid].isRematch) return;
+		if (games[_gid].rematchingGid == 0) return;
 		if (games[_gid].state.accepted) return;
 
 		// Rematch request is open, cancel it
@@ -561,6 +564,26 @@ contract FHEKuhnPoker is Permissioned {
 
 		for (uint256 i = 0; i < pairGamesCount; i++) {
 			ret[i] = games[pairGames[p1][p2].at(i)];
+		}
+	}
+
+	function getUserGameState(
+		address _user
+	) external view returns (uint256 displayGid, uint256 rematchGid) {
+		uint256 activeGid = userActiveGame[_user];
+
+		// User has no active game
+		if (activeGid == 0) {
+			return (0, 0);
+		}
+
+		if (games[activeGid].state.accepted) {
+			return (activeGid, 0);
+		} else {
+			if (games[activeGid].rematchingGid != 0) {
+				return (games[activeGid].rematchingGid, activeGid);
+			}
+			return (activeGid, 0);
 		}
 	}
 }

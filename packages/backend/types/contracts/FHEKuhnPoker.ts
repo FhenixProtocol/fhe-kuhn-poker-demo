@@ -84,7 +84,7 @@ export type GameOutcomeStructOutput = [
 
 export type GameStruct = {
   gid: BigNumberish;
-  isRematch: boolean;
+  rematchingGid: BigNumberish;
   playerA: AddressLike;
   playerB: AddressLike;
   state: GameStateStruct;
@@ -93,14 +93,14 @@ export type GameStruct = {
 
 export type GameStructOutput = [
   gid: bigint,
-  isRematch: boolean,
+  rematchingGid: bigint,
   playerA: string,
   playerB: string,
   state: GameStateStructOutput,
   outcome: GameOutcomeStructOutput
 ] & {
   gid: bigint;
-  isRematch: boolean;
+  rematchingGid: bigint;
   playerA: string;
   playerB: string;
   state: GameStateStructOutput;
@@ -133,6 +133,7 @@ export interface FHEKuhnPokerInterface extends Interface {
       | "getGame"
       | "getGameCard"
       | "getPairGames"
+      | "getUserGameState"
       | "getUserGames"
       | "gid"
       | "openGameId"
@@ -188,6 +189,10 @@ export interface FHEKuhnPokerInterface extends Interface {
     values: [AddressLike, AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "getUserGameState",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getUserGames",
     values: [AddressLike]
   ): string;
@@ -233,6 +238,10 @@ export interface FHEKuhnPokerInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getPairGames",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getUserGameState",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -524,14 +533,14 @@ export interface FHEKuhnPoker extends BaseContract {
     [
       [
         bigint,
-        boolean,
+        bigint,
         string,
         string,
         GameStateStructOutput,
         GameOutcomeStructOutput
       ] & {
         gid: bigint;
-        isRematch: boolean;
+        rematchingGid: bigint;
         playerA: string;
         playerB: string;
         state: GameStateStructOutput;
@@ -556,6 +565,12 @@ export interface FHEKuhnPoker extends BaseContract {
   getPairGames: TypedContractMethod<
     [_playerA: AddressLike, _playerB: AddressLike],
     [GameStructOutput[]],
+    "view"
+  >;
+
+  getUserGameState: TypedContractMethod<
+    [_user: AddressLike],
+    [[bigint, bigint] & { displayGid: bigint; rematchGid: bigint }],
     "view"
   >;
 
@@ -623,14 +638,14 @@ export interface FHEKuhnPoker extends BaseContract {
     [
       [
         bigint,
-        boolean,
+        bigint,
         string,
         string,
         GameStateStructOutput,
         GameOutcomeStructOutput
       ] & {
         gid: bigint;
-        isRematch: boolean;
+        rematchingGid: bigint;
         playerA: string;
         playerB: string;
         state: GameStateStructOutput;
@@ -654,6 +669,13 @@ export interface FHEKuhnPoker extends BaseContract {
   ): TypedContractMethod<
     [_playerA: AddressLike, _playerB: AddressLike],
     [GameStructOutput[]],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getUserGameState"
+  ): TypedContractMethod<
+    [_user: AddressLike],
+    [[bigint, bigint] & { displayGid: bigint; rematchGid: bigint }],
     "view"
   >;
   getFunction(
