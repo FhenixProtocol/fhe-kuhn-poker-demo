@@ -23,12 +23,47 @@ import type {
   TypedContractMethod,
 } from "../common";
 
+export type GameStateStruct = {
+  accepted: boolean;
+  eCardA: BigNumberish;
+  eCardB: BigNumberish;
+  pot: BigNumberish;
+  activePlayer: AddressLike;
+  timeout: BigNumberish;
+  action1: BigNumberish;
+  action2: BigNumberish;
+  action3: BigNumberish;
+};
+
+export type GameStateStructOutput = [
+  accepted: boolean,
+  eCardA: bigint,
+  eCardB: bigint,
+  pot: bigint,
+  activePlayer: string,
+  timeout: bigint,
+  action1: bigint,
+  action2: bigint,
+  action3: bigint
+] & {
+  accepted: boolean;
+  eCardA: bigint;
+  eCardB: bigint;
+  pot: bigint;
+  activePlayer: string;
+  timeout: bigint;
+  action1: bigint;
+  action2: bigint;
+  action3: bigint;
+};
+
 export type GameOutcomeStruct = {
   gid: BigNumberish;
   cardA: BigNumberish;
   cardB: BigNumberish;
   winner: AddressLike;
   outcome: BigNumberish;
+  rematchGid: BigNumberish;
 };
 
 export type GameOutcomeStructOutput = [
@@ -36,55 +71,39 @@ export type GameOutcomeStructOutput = [
   cardA: bigint,
   cardB: bigint,
   winner: string,
-  outcome: bigint
+  outcome: bigint,
+  rematchGid: bigint
 ] & {
   gid: bigint;
   cardA: bigint;
   cardB: bigint;
   winner: string;
   outcome: bigint;
+  rematchGid: bigint;
 };
 
 export type GameStruct = {
   gid: BigNumberish;
+  isRematch: boolean;
   playerA: AddressLike;
   playerB: AddressLike;
-  accepted: boolean;
-  pot: BigNumberish;
-  startingPlayer: BigNumberish;
-  eCardA: BigNumberish;
-  eCardB: BigNumberish;
-  action1: BigNumberish;
-  action2: BigNumberish;
-  action3: BigNumberish;
+  state: GameStateStruct;
   outcome: GameOutcomeStruct;
 };
 
 export type GameStructOutput = [
   gid: bigint,
+  isRematch: boolean,
   playerA: string,
   playerB: string,
-  accepted: boolean,
-  pot: bigint,
-  startingPlayer: bigint,
-  eCardA: bigint,
-  eCardB: bigint,
-  action1: bigint,
-  action2: bigint,
-  action3: bigint,
+  state: GameStateStructOutput,
   outcome: GameOutcomeStructOutput
 ] & {
   gid: bigint;
+  isRematch: boolean;
   playerA: string;
   playerB: string;
-  accepted: boolean;
-  pot: bigint;
-  startingPlayer: bigint;
-  eCardA: bigint;
-  eCardB: bigint;
-  action1: bigint;
-  action2: bigint;
-  action3: bigint;
+  state: GameStateStructOutput;
   outcome: GameOutcomeStructOutput;
 };
 
@@ -106,37 +125,39 @@ export interface FHEKuhnPokerInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "chips"
-      | "createGame"
       | "dealMeIn"
       | "eip712Domain"
+      | "exitGame"
+      | "findGame"
       | "games"
       | "getGame"
       | "getGameCard"
-      | "getOpenGames"
+      | "getPairGames"
       | "getUserGames"
       | "gid"
-      | "joinGame"
-      | "owner"
+      | "openGameId"
       | "performAction"
+      | "rematch"
+      | "timeoutDuration"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
       | "ChipTaken"
       | "EIP712DomainChanged"
-      | "GameAccepted"
+      | "GameCancelled"
       | "GameCreated"
+      | "GameJoined"
       | "PerformedGameAction"
       | "PlayerDealtIn"
+      | "RematchAccepted"
+      | "RematchCreated"
       | "WonByFold"
       | "WonByShowdown"
+      | "WonByTimeout"
   ): EventFragment;
 
   encodeFunctionData(functionFragment: "chips", values: [AddressLike]): string;
-  encodeFunctionData(
-    functionFragment: "createGame",
-    values?: undefined
-  ): string;
   encodeFunctionData(
     functionFragment: "dealMeIn",
     values: [BigNumberish]
@@ -145,6 +166,11 @@ export interface FHEKuhnPokerInterface extends Interface {
     functionFragment: "eip712Domain",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "exitGame",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(functionFragment: "findGame", values?: undefined): string;
   encodeFunctionData(functionFragment: "games", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "getGame",
@@ -155,8 +181,8 @@ export interface FHEKuhnPokerInterface extends Interface {
     values: [PermissionStruct, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getOpenGames",
-    values?: undefined
+    functionFragment: "getPairGames",
+    values: [AddressLike, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getUserGames",
@@ -164,22 +190,30 @@ export interface FHEKuhnPokerInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "gid", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "joinGame",
-    values: [BigNumberish]
+    functionFragment: "openGameId",
+    values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "performAction",
     values: [BigNumberish, BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "rematch",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "timeoutDuration",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(functionFragment: "chips", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "createGame", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "dealMeIn", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "eip712Domain",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "exitGame", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "findGame", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "games", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "getGame", data: BytesLike): Result;
   decodeFunctionResult(
@@ -187,7 +221,7 @@ export interface FHEKuhnPokerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getOpenGames",
+    functionFragment: "getPairGames",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -195,10 +229,14 @@ export interface FHEKuhnPokerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "gid", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "joinGame", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "openGameId", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "performAction",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "rematch", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "timeoutDuration",
     data: BytesLike
   ): Result;
 }
@@ -226,11 +264,11 @@ export namespace EIP712DomainChangedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace GameAcceptedEvent {
-  export type InputTuple = [playerB: AddressLike, gid: BigNumberish];
-  export type OutputTuple = [playerB: string, gid: bigint];
+export namespace GameCancelledEvent {
+  export type InputTuple = [player: AddressLike, gid: BigNumberish];
+  export type OutputTuple = [player: string, gid: bigint];
   export interface OutputObject {
-    playerB: string;
+    player: string;
     gid: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -244,6 +282,19 @@ export namespace GameCreatedEvent {
   export type OutputTuple = [playerA: string, gid: bigint];
   export interface OutputObject {
     playerA: string;
+    gid: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace GameJoinedEvent {
+  export type InputTuple = [playerB: AddressLike, gid: BigNumberish];
+  export type OutputTuple = [playerB: string, gid: bigint];
+  export interface OutputObject {
+    playerB: string;
     gid: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -283,6 +334,32 @@ export namespace PlayerDealtInEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace RematchAcceptedEvent {
+  export type InputTuple = [playerB: AddressLike, gid: BigNumberish];
+  export type OutputTuple = [playerB: string, gid: bigint];
+  export interface OutputObject {
+    playerB: string;
+    gid: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RematchCreatedEvent {
+  export type InputTuple = [playerA: AddressLike, gid: BigNumberish];
+  export type OutputTuple = [playerA: string, gid: bigint];
+  export interface OutputObject {
+    playerA: string;
+    gid: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace WonByFoldEvent {
   export type InputTuple = [
     winner: AddressLike,
@@ -302,6 +379,24 @@ export namespace WonByFoldEvent {
 }
 
 export namespace WonByShowdownEvent {
+  export type InputTuple = [
+    winner: AddressLike,
+    gid: BigNumberish,
+    pot: BigNumberish
+  ];
+  export type OutputTuple = [winner: string, gid: bigint, pot: bigint];
+  export interface OutputObject {
+    winner: string;
+    gid: bigint;
+    pot: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace WonByTimeoutEvent {
   export type InputTuple = [
     winner: AddressLike,
     gid: BigNumberish,
@@ -364,8 +459,6 @@ export interface FHEKuhnPoker extends BaseContract {
 
   chips: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
-  createGame: TypedContractMethod<[], [void], "nonpayable">;
-
   dealMeIn: TypedContractMethod<
     [chipCount: BigNumberish],
     [void],
@@ -388,34 +481,26 @@ export interface FHEKuhnPoker extends BaseContract {
     "view"
   >;
 
+  exitGame: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+
+  findGame: TypedContractMethod<[], [void], "nonpayable">;
+
   games: TypedContractMethod<
     [arg0: BigNumberish],
     [
       [
         bigint,
-        string,
-        string,
         boolean,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
+        string,
+        string,
+        GameStateStructOutput,
         GameOutcomeStructOutput
       ] & {
         gid: bigint;
+        isRematch: boolean;
         playerA: string;
         playerB: string;
-        accepted: boolean;
-        pot: bigint;
-        startingPlayer: bigint;
-        eCardA: bigint;
-        eCardB: bigint;
-        action1: bigint;
-        action2: bigint;
-        action3: bigint;
+        state: GameStateStructOutput;
         outcome: GameOutcomeStructOutput;
       }
     ],
@@ -434,7 +519,11 @@ export interface FHEKuhnPoker extends BaseContract {
     "view"
   >;
 
-  getOpenGames: TypedContractMethod<[], [GameStructOutput[]], "view">;
+  getPairGames: TypedContractMethod<
+    [_playerA: AddressLike, _playerB: AddressLike],
+    [GameStructOutput[]],
+    "view"
+  >;
 
   getUserGames: TypedContractMethod<
     [user: AddressLike],
@@ -444,15 +533,17 @@ export interface FHEKuhnPoker extends BaseContract {
 
   gid: TypedContractMethod<[], [bigint], "view">;
 
-  joinGame: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
-
-  owner: TypedContractMethod<[], [string], "view">;
+  openGameId: TypedContractMethod<[], [bigint], "view">;
 
   performAction: TypedContractMethod<
     [_gid: BigNumberish, action: BigNumberish],
     [void],
     "nonpayable"
   >;
+
+  rematch: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+
+  timeoutDuration: TypedContractMethod<[], [bigint], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -461,9 +552,6 @@ export interface FHEKuhnPoker extends BaseContract {
   getFunction(
     nameOrSignature: "chips"
   ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "createGame"
-  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "dealMeIn"
   ): TypedContractMethod<[chipCount: BigNumberish], [void], "nonpayable">;
@@ -485,35 +573,29 @@ export interface FHEKuhnPoker extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "exitGame"
+  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "findGame"
+  ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "games"
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
       [
         bigint,
-        string,
-        string,
         boolean,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
+        string,
+        string,
+        GameStateStructOutput,
         GameOutcomeStructOutput
       ] & {
         gid: bigint;
+        isRematch: boolean;
         playerA: string;
         playerB: string;
-        accepted: boolean;
-        pot: bigint;
-        startingPlayer: bigint;
-        eCardA: bigint;
-        eCardB: bigint;
-        action1: bigint;
-        action2: bigint;
-        action3: bigint;
+        state: GameStateStructOutput;
         outcome: GameOutcomeStructOutput;
       }
     ],
@@ -530,8 +612,12 @@ export interface FHEKuhnPoker extends BaseContract {
     "view"
   >;
   getFunction(
-    nameOrSignature: "getOpenGames"
-  ): TypedContractMethod<[], [GameStructOutput[]], "view">;
+    nameOrSignature: "getPairGames"
+  ): TypedContractMethod<
+    [_playerA: AddressLike, _playerB: AddressLike],
+    [GameStructOutput[]],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "getUserGames"
   ): TypedContractMethod<[user: AddressLike], [GameStructOutput[]], "view">;
@@ -539,11 +625,8 @@ export interface FHEKuhnPoker extends BaseContract {
     nameOrSignature: "gid"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "joinGame"
-  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "owner"
-  ): TypedContractMethod<[], [string], "view">;
+    nameOrSignature: "openGameId"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "performAction"
   ): TypedContractMethod<
@@ -551,6 +634,12 @@ export interface FHEKuhnPoker extends BaseContract {
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "rematch"
+  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "timeoutDuration"
+  ): TypedContractMethod<[], [bigint], "view">;
 
   getEvent(
     key: "ChipTaken"
@@ -567,11 +656,11 @@ export interface FHEKuhnPoker extends BaseContract {
     EIP712DomainChangedEvent.OutputObject
   >;
   getEvent(
-    key: "GameAccepted"
+    key: "GameCancelled"
   ): TypedContractEvent<
-    GameAcceptedEvent.InputTuple,
-    GameAcceptedEvent.OutputTuple,
-    GameAcceptedEvent.OutputObject
+    GameCancelledEvent.InputTuple,
+    GameCancelledEvent.OutputTuple,
+    GameCancelledEvent.OutputObject
   >;
   getEvent(
     key: "GameCreated"
@@ -579,6 +668,13 @@ export interface FHEKuhnPoker extends BaseContract {
     GameCreatedEvent.InputTuple,
     GameCreatedEvent.OutputTuple,
     GameCreatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "GameJoined"
+  ): TypedContractEvent<
+    GameJoinedEvent.InputTuple,
+    GameJoinedEvent.OutputTuple,
+    GameJoinedEvent.OutputObject
   >;
   getEvent(
     key: "PerformedGameAction"
@@ -595,6 +691,20 @@ export interface FHEKuhnPoker extends BaseContract {
     PlayerDealtInEvent.OutputObject
   >;
   getEvent(
+    key: "RematchAccepted"
+  ): TypedContractEvent<
+    RematchAcceptedEvent.InputTuple,
+    RematchAcceptedEvent.OutputTuple,
+    RematchAcceptedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RematchCreated"
+  ): TypedContractEvent<
+    RematchCreatedEvent.InputTuple,
+    RematchCreatedEvent.OutputTuple,
+    RematchCreatedEvent.OutputObject
+  >;
+  getEvent(
     key: "WonByFold"
   ): TypedContractEvent<
     WonByFoldEvent.InputTuple,
@@ -607,6 +717,13 @@ export interface FHEKuhnPoker extends BaseContract {
     WonByShowdownEvent.InputTuple,
     WonByShowdownEvent.OutputTuple,
     WonByShowdownEvent.OutputObject
+  >;
+  getEvent(
+    key: "WonByTimeout"
+  ): TypedContractEvent<
+    WonByTimeoutEvent.InputTuple,
+    WonByTimeoutEvent.OutputTuple,
+    WonByTimeoutEvent.OutputObject
   >;
 
   filters: {
@@ -632,15 +749,15 @@ export interface FHEKuhnPoker extends BaseContract {
       EIP712DomainChangedEvent.OutputObject
     >;
 
-    "GameAccepted(address,uint256)": TypedContractEvent<
-      GameAcceptedEvent.InputTuple,
-      GameAcceptedEvent.OutputTuple,
-      GameAcceptedEvent.OutputObject
+    "GameCancelled(address,uint256)": TypedContractEvent<
+      GameCancelledEvent.InputTuple,
+      GameCancelledEvent.OutputTuple,
+      GameCancelledEvent.OutputObject
     >;
-    GameAccepted: TypedContractEvent<
-      GameAcceptedEvent.InputTuple,
-      GameAcceptedEvent.OutputTuple,
-      GameAcceptedEvent.OutputObject
+    GameCancelled: TypedContractEvent<
+      GameCancelledEvent.InputTuple,
+      GameCancelledEvent.OutputTuple,
+      GameCancelledEvent.OutputObject
     >;
 
     "GameCreated(address,uint256)": TypedContractEvent<
@@ -652,6 +769,17 @@ export interface FHEKuhnPoker extends BaseContract {
       GameCreatedEvent.InputTuple,
       GameCreatedEvent.OutputTuple,
       GameCreatedEvent.OutputObject
+    >;
+
+    "GameJoined(address,uint256)": TypedContractEvent<
+      GameJoinedEvent.InputTuple,
+      GameJoinedEvent.OutputTuple,
+      GameJoinedEvent.OutputObject
+    >;
+    GameJoined: TypedContractEvent<
+      GameJoinedEvent.InputTuple,
+      GameJoinedEvent.OutputTuple,
+      GameJoinedEvent.OutputObject
     >;
 
     "PerformedGameAction(address,uint256,uint8)": TypedContractEvent<
@@ -676,6 +804,28 @@ export interface FHEKuhnPoker extends BaseContract {
       PlayerDealtInEvent.OutputObject
     >;
 
+    "RematchAccepted(address,uint256)": TypedContractEvent<
+      RematchAcceptedEvent.InputTuple,
+      RematchAcceptedEvent.OutputTuple,
+      RematchAcceptedEvent.OutputObject
+    >;
+    RematchAccepted: TypedContractEvent<
+      RematchAcceptedEvent.InputTuple,
+      RematchAcceptedEvent.OutputTuple,
+      RematchAcceptedEvent.OutputObject
+    >;
+
+    "RematchCreated(address,uint256)": TypedContractEvent<
+      RematchCreatedEvent.InputTuple,
+      RematchCreatedEvent.OutputTuple,
+      RematchCreatedEvent.OutputObject
+    >;
+    RematchCreated: TypedContractEvent<
+      RematchCreatedEvent.InputTuple,
+      RematchCreatedEvent.OutputTuple,
+      RematchCreatedEvent.OutputObject
+    >;
+
     "WonByFold(address,uint256,uint256)": TypedContractEvent<
       WonByFoldEvent.InputTuple,
       WonByFoldEvent.OutputTuple,
@@ -696,6 +846,17 @@ export interface FHEKuhnPoker extends BaseContract {
       WonByShowdownEvent.InputTuple,
       WonByShowdownEvent.OutputTuple,
       WonByShowdownEvent.OutputObject
+    >;
+
+    "WonByTimeout(address,uint256,uint256)": TypedContractEvent<
+      WonByTimeoutEvent.InputTuple,
+      WonByTimeoutEvent.OutputTuple,
+      WonByTimeoutEvent.OutputObject
+    >;
+    WonByTimeout: TypedContractEvent<
+      WonByTimeoutEvent.InputTuple,
+      WonByTimeoutEvent.OutputTuple,
+      WonByTimeoutEvent.OutputObject
     >;
   };
 }
