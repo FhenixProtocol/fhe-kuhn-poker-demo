@@ -138,7 +138,9 @@ export interface FHEKuhnPokerInterface extends Interface {
       | "openGameId"
       | "performAction"
       | "rematch"
+      | "resign"
       | "timeoutDuration"
+      | "userActiveGame"
   ): FunctionFragment;
 
   getEvent(
@@ -153,6 +155,7 @@ export interface FHEKuhnPokerInterface extends Interface {
       | "RematchAccepted"
       | "RematchCreated"
       | "WonByFold"
+      | "WonByResignation"
       | "WonByShowdown"
       | "WonByTimeout"
   ): EventFragment;
@@ -202,8 +205,16 @@ export interface FHEKuhnPokerInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "resign",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "timeoutDuration",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "userActiveGame",
+    values: [AddressLike]
   ): string;
 
   decodeFunctionResult(functionFragment: "chips", data: BytesLike): Result;
@@ -235,8 +246,13 @@ export interface FHEKuhnPokerInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "rematch", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "resign", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "timeoutDuration",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "userActiveGame",
     data: BytesLike
   ): Result;
 }
@@ -361,6 +377,24 @@ export namespace RematchCreatedEvent {
 }
 
 export namespace WonByFoldEvent {
+  export type InputTuple = [
+    winner: AddressLike,
+    gid: BigNumberish,
+    pot: BigNumberish
+  ];
+  export type OutputTuple = [winner: string, gid: bigint, pot: bigint];
+  export interface OutputObject {
+    winner: string;
+    gid: bigint;
+    pot: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace WonByResignationEvent {
   export type InputTuple = [
     winner: AddressLike,
     gid: BigNumberish,
@@ -543,7 +577,11 @@ export interface FHEKuhnPoker extends BaseContract {
 
   rematch: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
 
+  resign: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+
   timeoutDuration: TypedContractMethod<[], [bigint], "view">;
+
+  userActiveGame: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -638,8 +676,14 @@ export interface FHEKuhnPoker extends BaseContract {
     nameOrSignature: "rematch"
   ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "resign"
+  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "timeoutDuration"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "userActiveGame"
+  ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
   getEvent(
     key: "ChipTaken"
@@ -710,6 +754,13 @@ export interface FHEKuhnPoker extends BaseContract {
     WonByFoldEvent.InputTuple,
     WonByFoldEvent.OutputTuple,
     WonByFoldEvent.OutputObject
+  >;
+  getEvent(
+    key: "WonByResignation"
+  ): TypedContractEvent<
+    WonByResignationEvent.InputTuple,
+    WonByResignationEvent.OutputTuple,
+    WonByResignationEvent.OutputObject
   >;
   getEvent(
     key: "WonByShowdown"
@@ -835,6 +886,17 @@ export interface FHEKuhnPoker extends BaseContract {
       WonByFoldEvent.InputTuple,
       WonByFoldEvent.OutputTuple,
       WonByFoldEvent.OutputObject
+    >;
+
+    "WonByResignation(address,uint256,uint256)": TypedContractEvent<
+      WonByResignationEvent.InputTuple,
+      WonByResignationEvent.OutputTuple,
+      WonByResignationEvent.OutputObject
+    >;
+    WonByResignation: TypedContractEvent<
+      WonByResignationEvent.InputTuple,
+      WonByResignationEvent.OutputTuple,
+      WonByResignationEvent.OutputObject
     >;
 
     "WonByShowdown(address,uint256,uint256)": TypedContractEvent<

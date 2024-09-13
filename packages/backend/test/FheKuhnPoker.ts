@@ -131,6 +131,9 @@ describe("FHEKuhnPoker", function () {
     expect(game.state.pot).to.eq(1, "pot includes bob's ante");
     expect(await fheKuhnPoker.chips(bob.address)).to.eq(99, "bob's ante taken");
 
+    const bobActiveGame = await fheKuhnPoker.userActiveGame(bob.address);
+    expect(bobActiveGame).to.eq(game.gid, "Bobs active game is correct");
+
     const openGameId = await fheKuhnPoker.openGameId();
     expect(openGameId).to.eq(game.gid, "Created game is the open game");
   });
@@ -164,6 +167,9 @@ describe("FHEKuhnPoker", function () {
 
     const openGameId = await fheKuhnPoker.openGameId();
     expect(openGameId).to.eq(0, "Open game should be empty");
+
+    const adaActiveGame = await fheKuhnPoker.userActiveGame(bob.address);
+    expect(adaActiveGame).to.eq(game.gid, "Adas active game is correct");
   });
 
   it("randomizations look good", async () => {
@@ -648,6 +654,15 @@ describe("FHEKuhnPoker", function () {
       "NotPlayerInGame",
     );
 
+    // Opponent has already left and started a new game
+    await withinSnapshot(async () => {
+      await fheKuhnPoker.connect(ada).findGame();
+      await expect(fheKuhnPoker.connect(bob).rematch(gid)).to.be.revertedWithCustomError(
+        fheKuhnPoker,
+        "OpponentHasLeft",
+      );
+    });
+
     await fheKuhnPoker.connect(bob).rematch(gid);
 
     // Rematch has been cancelled
@@ -699,6 +714,7 @@ describe("FHEKuhnPoker", function () {
     const rematchGame = await fheKuhnPoker.getGame(rematchGid);
     const openGameId = await fheKuhnPoker.openGameId();
     const bobChipsFinal = await fheKuhnPoker.chips(bob.address);
+    const bobActiveGame = await fheKuhnPoker.userActiveGame(bob.address);
 
     expect(originalGame.outcome.rematchGid).to.eq(rematchGame.gid, "Rematch GID set correctly");
 
@@ -709,7 +725,10 @@ describe("FHEKuhnPoker", function () {
     expect(openGameId).to.eq(0, "Rematch should not be considered an open game");
 
     expect(bobChipsFinal).to.eq(bobChipsInit - 1n, "Bob anted in on rematch");
+
+    expect(bobActiveGame).to.eq(rematchGame.gid, "Bobs active game is correct");
   });
+
   it("user can cancel their rematch request", async () => {
     const gid = 1;
     const rematchGid = gid + 1;
@@ -734,6 +753,35 @@ describe("FHEKuhnPoker", function () {
       .to.emit(fheKuhnPoker, "GameCancelled")
       .withArgs(bob.address, rematchGid);
   });
+
+  it("rematch requests are cancelled automatically when the user finds a new game", async () => {
+    const gid = 1;
+    const rematchGid = gid + 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+
+    await playoutGame(gid);
+
+    await fheKuhnPoker.connect(bob).rematch(gid);
+
+    const bobChipsInit = await fheKuhnPoker.chips(bob.address);
+
+    await expect(fheKuhnPoker.connect(bob).findGame())
+      .to.emit(fheKuhnPoker, "GameCancelled")
+      .withArgs(bob.address, rematchGid);
+
+    await expect(fheKuhnPoker.connect(ada).rematch(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "RematchCancelled",
+    );
+
+    const bobChipsFinal = await fheKuhnPoker.chips(bob.address);
+    expect(bobChipsInit).to.eq(bobChipsFinal, "One chip returned from rematch request, then anted into new game");
+  });
+
   it("user can accept a rematch and start a new game", async () => {
     const gid = 1;
     const rematchGid = gid + 1;
@@ -760,9 +808,13 @@ describe("FHEKuhnPoker", function () {
     bobGameIds = (await fheKuhnPoker.getUserGames(bob.address)).map(game => game.gid);
     expect(bobGameIds).to.deep.eq([1n, 2n], "Ada accepting rematch adds it to bobs games");
 
+    const adaActiveGame = await fheKuhnPoker.userActiveGame(bob.address);
+    expect(adaActiveGame).to.eq(rematchGid, "Adas active game is the rematch");
+
     // Rematch can be played
     await playoutGame(rematchGid);
   });
+
   it("all games between to players are added to pairGames", async () => {
     let gid = 1;
 
@@ -803,5 +855,80 @@ describe("FHEKuhnPoker", function () {
     pairGames = await fheKuhnPoker.getPairGames(ada.address, bob.address);
     pairGameIds = pairGames.map(game => game.gid);
     expect(pairGameIds).to.deep.eq([1n, 2n, 3n], "Pair has played games: [1, 2, 3]");
+  });
+
+  it("users can resign", async () => {
+    const gid = 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+
+    // Game not started
+    await expect(fheKuhnPoker.connect(bob).resign(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "GameNotStarted");
+
+    await fheKuhnPoker.connect(ada).findGame();
+
+    // Invalid gid
+    await expect(fheKuhnPoker.connect(bob).resign(gid + 1)).to.be.revertedWithCustomError(fheKuhnPoker, "InvalidGame");
+
+    // Not player in game
+    await expect(fheKuhnPoker.connect(signer).resign(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "NotPlayerInGame",
+    );
+
+    // Game ended
+    await withinSnapshot(async () => {
+      await playoutGame(gid);
+      await expect(fheKuhnPoker.connect(bob).resign(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "GameEnded");
+    });
+
+    // Valid Resignation
+    let game = await fheKuhnPoker.getGame(gid);
+    const adaChipsInit = await fheKuhnPoker.chips(ada.address);
+
+    await expect(fheKuhnPoker.connect(bob).resign(gid))
+      .to.emit(fheKuhnPoker, "WonByResignation")
+      .withArgs(ada.address, gid, game.state.pot);
+
+    game = await fheKuhnPoker.getGame(gid);
+    const adaChipsFinal = await fheKuhnPoker.chips(ada.address);
+
+    expect(game.outcome.outcome).to.eq(GameOutcome.RESIGN, "Bob resigned");
+    expect(game.outcome.winner).to.eq(ada.address, "Bob resigned so ada wins");
+    expect(adaChipsFinal).to.eq(adaChipsInit + game.state.pot, "Ada gets pot");
+  });
+
+  it("finding a new game will resign the user from their existing game", async () => {
+    const gid = 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+
+    await expect(fheKuhnPoker.connect(bob).findGame())
+      .to.emit(fheKuhnPoker, "WonByResignation")
+      .withArgs(ada.address, gid, 2);
+  });
+
+  it("finding a new game will resign the user from their existing rematch", async () => {
+    const gid = 1;
+    const rematchGid = gid + 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+
+    await playoutGame(gid);
+
+    await fheKuhnPoker.connect(bob).rematch(gid);
+    await fheKuhnPoker.connect(ada).rematch(gid);
+
+    await expect(fheKuhnPoker.connect(ada).findGame())
+      .to.emit(fheKuhnPoker, "WonByResignation")
+      .withArgs(bob.address, rematchGid, 2);
   });
 });

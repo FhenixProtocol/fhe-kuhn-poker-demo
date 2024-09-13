@@ -72,8 +72,8 @@ const GameOverview: React.FC<{ game: GameInfo }> = ({ game }) => {
           </tr>
         </tbody>
       </table>
-      {!game.accepted && game.playerA !== address && <JoinGameButton gid={game.gid} />}
-      {game.accepted && (game.playerA == address || game.playerB == address) && (
+      {!game.state.accepted && game.playerA !== address && <JoinGameButton gid={game.gid} />}
+      {game.state.accepted && (game.playerA == address || game.playerB == address) && (
         <Link href={`/game/${game.gid}`} passHref className="btn gap-1">
           Open Game
         </Link>
@@ -82,13 +82,13 @@ const GameOverview: React.FC<{ game: GameInfo }> = ({ game }) => {
   );
 };
 
-const CreateGameButton = () => {
+const FindGameButton = () => {
   const { chain: connectedChain } = useNetwork();
   const { targetNetwork } = useTargetNetwork();
 
-  const { writeAsync: createGame, isMining } = useScaffoldContractWrite({
+  const { writeAsync: findGame, isMining } = useScaffoldContractWrite({
     contractName: "FHEKuhnPoker",
-    functionName: "createGame",
+    functionName: "findGame",
     blockConfirmations: 1,
   });
   const writeDisabled = !connectedChain || connectedChain?.id !== targetNetwork.id;
@@ -101,7 +101,7 @@ const CreateGameButton = () => {
       }`}
       data-tip={`${writeDisabled && "Wallet not connected or incorrect network."}`}
     >
-      <button className="btn" disabled={writeDisabled || isMining} onClick={() => createGame()}>
+      <button className="btn" disabled={writeDisabled || isMining} onClick={() => findGame()}>
         {isMining && <span className="loading loading-spinner loading-xs" />}
         Create
       </button>
@@ -189,7 +189,7 @@ const PlayerCard = () => {
 
       <div className="flex flex-row justify-between items-center space-x-2 w-full">
         <p>Create Game: </p>
-        <CreateGameButton />
+        <FindGameButton />
       </div>
     </div>
   );
@@ -203,14 +203,9 @@ const HomeContent = () => {
     functionName: "getUserGames",
     args: [address],
   });
-  const { data: openGames, refetch: refetchOpenGames } = useScaffoldContractRead({
-    contractName: "FHEKuhnPoker",
-    functionName: "getOpenGames",
-  });
 
   useInterval(() => {
     refetchUserGames();
-    refetchOpenGames();
   }, 2000);
 
   return (
@@ -225,20 +220,6 @@ const HomeContent = () => {
                 game.playerA !== ZeroAddress && game.playerB !== ZeroAddress && game.outcome.winner === ZeroAddress,
             )
             .map(game => <GameOverview key={game.gid} game={game} />)}
-      </div>
-
-      <p>Your Open Games</p>
-      <div className="flex flex-row justify-center items-center gap-4 flex-wrap">
-        {userGames != null &&
-          userGames
-            .filter(game => game.playerB === ZeroAddress)
-            .map(game => <GameOverview key={game.gid} game={game} />)}
-      </div>
-
-      <p>All Open Games</p>
-      <div className="flex flex-row justify-center items-center gap-4 flex-wrap">
-        {openGames != null &&
-          openGames.filter(game => game.playerA !== address).map(game => <GameOverview key={game.gid} game={game} />)}
       </div>
 
       <p>Your Past Games</p>

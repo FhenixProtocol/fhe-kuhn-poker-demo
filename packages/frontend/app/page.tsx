@@ -3,6 +3,21 @@
 import type { NextPage } from "next";
 import HomeContent from "~~/components/fhenix/HomeContent";
 
+
+// Gameplay flow
+// User joins to empty table
+// User has button to find a game
+// User presses button to find a game, once `userActiveGame` is a non-zero number, show the game board
+// User plays the game
+// After game ends, users shown: <FIND NEW GAME> / <REQUEST REMATCH>
+// <FIND NEW GAME>
+//    Game board empties
+// <REQUEST REMATCH>
+//    * disabled and replaced with "Opponent Left" if opponents `userActiveGame` changes
+//    * changes to "ACCEPT REMATCH" if opponents `userActiveGame` switches to the rematchGid
+//    Requests rematch on click
+//    If opponent leav
+
 const Home: NextPage = () => {
   return (
     <>

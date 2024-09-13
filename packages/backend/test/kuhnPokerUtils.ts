@@ -4,6 +4,7 @@ export const GameOutcome = {
   FOLD: 2,
   TIMEOUT: 3,
   CANCEL: 4,
+  RESIGN: 5,
 } as const;
 
 export const PlayerAction = {
