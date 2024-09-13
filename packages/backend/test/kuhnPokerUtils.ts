@@ -1,9 +1,9 @@
 export const GameOutcome = {
   EMPTY: 0,
-  A_BY_SHOWDOWN: 1,
-  B_BY_SHOWDOWN: 2,
-  A_BY_FOLD: 3,
-  B_BY_FOLD: 4,
+  SHOWDOWN: 1,
+  FOLD: 2,
+  TIMEOUT: 3,
+  CANCEL: 4,
 } as const;
 
 export const PlayerAction = {
@@ -13,6 +13,23 @@ export const PlayerAction = {
   FOLD: 3,
   CALL: 4,
 } as const;
+
+export const playerActionFromContractAction = (n: bigint) => {
+  switch (n) {
+    case 0n:
+      return PlayerAction.EMPTY;
+    case 1n:
+      return PlayerAction.CHECK;
+    case 2n:
+      return PlayerAction.BET;
+    case 3n:
+      return PlayerAction.FOLD;
+    case 4n:
+      return PlayerAction.CALL;
+    default:
+      return PlayerAction.EMPTY;
+  }
+};
 
 export const playerActionNumToName = (n: ActionOption) => {
   switch (n) {

@@ -17,10 +17,13 @@ import {
   ExhaustiveGameBranch,
   Expectation,
   GameOutcome,
+  getAvailableActions,
   PlayerAction,
+  playerActionFromContractAction,
   playerActionNumToName,
   PokerGameBranch,
 } from "./kuhnPokerUtils";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { FHEKuhnPoker, FHEKuhnPoker__factory } from "../types";
 
 const cardToLetter = (n: bigint) => {
@@ -68,6 +71,38 @@ describe("FHEKuhnPoker", function () {
     await revertSnapshot(snapshotId);
   });
 
+  const getValidGamePlayerAndAction = async (gid: number) => {
+    const game = await fheKuhnPoker.getGame(gid);
+    const player = game.state.activePlayer === bob.address ? bob : ada;
+
+    const availableActions = getAvailableActions(
+      playerActionFromContractAction(game.state.action1),
+      playerActionFromContractAction(game.state.action2),
+    );
+    if (availableActions.length === 0) return { player: null, action: null };
+
+    const action = availableActions[0];
+
+    return {
+      player,
+      action,
+    };
+  };
+
+  const playValidGameAction = async (gid: number) => {
+    const { player, action } = await getValidGamePlayerAndAction(gid);
+    if (player == null) return null;
+    await fheKuhnPoker.connect(player).performAction(gid, action);
+  };
+
+  const playoutGame = async (gid: number) => {
+    while (true) {
+      await playValidGameAction(gid);
+      const game = await fheKuhnPoker.getGame(gid);
+      if (Number(game.outcome.outcome) !== GameOutcome.EMPTY) return;
+    }
+  };
+
   it("dealMeIn should succeed", async () => {
     const bobTokensInit = await fheKuhnPoker.chips(bob.address);
     await expect(fheKuhnPoker.connect(bob).dealMeIn(100))
@@ -77,73 +112,66 @@ describe("FHEKuhnPoker", function () {
     expect(bobTokensFinal - bobTokensInit).to.eq(100, "Bob receives correct amount of chips");
   });
 
-  it("createGame should revert with invalid params", async () => {
+  it("findGame should revert if not enough chips", async () => {
     // Bob doesn't have chips
-    await expect(fheKuhnPoker.connect(bob).createGame()).to.be.revertedWithCustomError(fheKuhnPoker, "NotEnoughChips");
+    await expect(fheKuhnPoker.connect(bob).findGame()).to.be.revertedWithCustomError(fheKuhnPoker, "NotEnoughChips");
   });
 
-  it("createGame should succeed", async () => {
-    const gid = 0;
+  it("findGame should create a new game if none open", async () => {
+    const gid = 1;
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await expect(fheKuhnPoker.connect(bob).createGame())
-      .to.emit(fheKuhnPoker, "GameCreated")
-      .withArgs(bob.address, gid);
+    await expect(fheKuhnPoker.connect(bob).findGame()).to.emit(fheKuhnPoker, "GameCreated").withArgs(bob.address, gid);
 
     const game = await fheKuhnPoker.games(gid);
 
     expect(game.gid).to.eq(gid, "game id is 0");
     expect(game.playerA).to.eq(bob.address, "playerA is bob");
     expect(game.playerB).to.eq(ZeroAddress, "playerB is unset");
-    expect(game.pot).to.eq(1, "pot includes bob's ante");
+    expect(game.state.pot).to.eq(1, "pot includes bob's ante");
     expect(await fheKuhnPoker.chips(bob.address)).to.eq(99, "bob's ante taken");
+
+    const openGameId = await fheKuhnPoker.openGameId();
+    expect(openGameId).to.eq(game.gid, "Created game is the open game");
   });
 
-  it("joinGame should revert with invalid params", async () => {
-    const gid = 0;
-
-    // Invalid gid
-    await expect(fheKuhnPoker.connect(ada).joinGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "InvalidGame");
+  it("findGame should join open game if exists", async () => {
+    const gid = 1;
 
     // Create game
     await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame();
+    await fheKuhnPoker.connect(bob).findGame();
 
     // Invalid playerB
-    await expect(fheKuhnPoker.connect(bob).joinGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "InvalidPlayerB");
+    await expect(fheKuhnPoker.connect(bob).findGame()).to.be.revertedWithCustomError(fheKuhnPoker, "InvalidPlayerB");
 
     // Not enough chips
-    await expect(fheKuhnPoker.connect(ada).joinGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "NotEnoughChips");
+    await expect(fheKuhnPoker.connect(ada).findGame()).to.be.revertedWithCustomError(fheKuhnPoker, "NotEnoughChips");
 
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await expect(fheKuhnPoker.connect(ada).joinGame(gid)).to.not.be.reverted;
-  });
-
-  it("joinGame should succeed", async () => {
-    const gid = 0;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame();
-
-    await expect(fheKuhnPoker.connect(ada).joinGame(gid))
-      .to.emit(fheKuhnPoker, "GameAccepted")
-      .withArgs(ada.address, gid);
+    await expect(fheKuhnPoker.connect(ada).findGame()).to.emit(fheKuhnPoker, "GameJoined").withArgs(ada.address, gid);
 
     const game = await fheKuhnPoker.games(gid);
 
-    expect(game.accepted).to.eq(true, "ada accepted game");
+    expect(game.state.accepted).to.eq(true, "ada accepted game");
     expect(game.playerB).to.eq(ada.address, "Ada is playerB");
-    expect([0n, 1n].includes(game.startingPlayer)).to.eq(true, "Starting player should be 0 or 1");
-    expect(game.pot).to.eq(2, "ada's ante should be added");
+    expect([bob.address, ada.address].includes(game.state.activePlayer)).to.eq(
+      true,
+      "Active player should be bob or ada",
+    );
+    expect(game.state.pot).to.eq(2, "ada's ante should be added");
     expect(await fheKuhnPoker.chips(ada.address)).to.eq(99, "ada's ante should be taken");
+
+    const openGameId = await fheKuhnPoker.openGameId();
+    expect(openGameId).to.eq(0, "Open game should be empty");
   });
-  it("joinGame should generate a random starting player and cards", async () => {
-    const gid = 0;
+
+  it("randomizations look good", async () => {
+    const gid = 1;
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame();
+    await fheKuhnPoker.connect(bob).findGame();
 
     const startingPlayer = {
       A: 0,
@@ -177,30 +205,29 @@ describe("FHEKuhnPoker", function () {
       total: 0,
     };
 
-    const rngSnapId = await takeSnapshot();
-
     for (let i = 0; i < 100; i++) {
-      await fheKuhnPoker.connect(ada).joinGame(gid);
-      const game = await fheKuhnPoker.games(gid);
+      await withinSnapshot(async () => {
+        await time.increase(i + 1);
+        await fheKuhnPoker.connect(ada).findGame();
+        const game = await fheKuhnPoker.games(gid);
 
-      if (game.startingPlayer == 0n) startingPlayer.A += 1;
-      else startingPlayer.B += 1;
-      startingPlayer.total += 1;
+        if (game.state.activePlayer == bob.address) startingPlayer.A += 1;
+        else startingPlayer.B += 1;
+        startingPlayer.total += 1;
 
-      expect(game.eCardA).not.eq(game.eCardB, "Players cards shouldn't match");
-      playerACards[cardToLetter(game.eCardA)] += 1;
-      playerACards.total += 1;
-      playerBCards[cardToLetter(game.eCardB)] += 1;
-      playerBCards.total += 1;
+        expect(game.state.eCardA).not.eq(game.state.eCardB, "Players cards shouldn't match");
+        playerACards[cardToLetter(game.state.eCardA)] += 1;
+        playerACards.total += 1;
+        playerBCards[cardToLetter(game.state.eCardB)] += 1;
+        playerBCards.total += 1;
 
-      cardPairs[`${cardToLetter(game.eCardA)}-${cardToLetter(game.eCardB)}`] += 1;
-      cardPairs.total += 1;
+        cardPairs[`${cardToLetter(game.state.eCardA)}-${cardToLetter(game.state.eCardB)}`] += 1;
+        cardPairs.total += 1;
 
-      if (game.eCardA > game.eCardB) wins.A += 1;
-      else wins.B += 1;
-      wins.total += 1;
-
-      await revertSnapshot(rngSnapId);
+        if (game.state.eCardA > game.state.eCardB) wins.A += 1;
+        else wins.B += 1;
+        wins.total += 1;
+      });
     }
 
     console.log({
@@ -213,16 +240,16 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("getGameCard should revert on invalid params", async () => {
-    const gid = 0;
+    const gid = 1;
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame();
-    await fheKuhnPoker.connect(ada).joinGame(gid);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
 
     // Revert if invalid gid
     let permission = await createFhenixContractPermission(hre, bob, fheKuhnPokerAddress);
-    await expect(fheKuhnPoker.connect(bob).getGameCard(permission, 1)).to.be.revertedWithCustomError(
+    await expect(fheKuhnPoker.connect(bob).getGameCard(permission, gid + 1)).to.be.revertedWithCustomError(
       fheKuhnPoker,
       "InvalidGame",
     );
@@ -243,12 +270,12 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("getGameCard should return sealed card", async () => {
-    const gid = 0;
+    const gid = 1;
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame();
-    await fheKuhnPoker.connect(ada).joinGame(gid);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
 
     const game = await fheKuhnPoker.games(gid);
 
@@ -260,16 +287,16 @@ describe("FHEKuhnPoker", function () {
     const adaSealedCard = await fheKuhnPoker.connect(ada).getGameCard(permission, gid);
     const adaUnsealedCard = unsealMockFheOpsSealed(adaSealedCard.data);
 
-    expect(bobUnsealedCard).to.eq(game.eCardA, "bob's unsealed card should match");
-    expect(adaUnsealedCard).to.eq(game.eCardB, "ada's unsealed card should match");
+    expect(bobUnsealedCard).to.eq(game.state.eCardA, "bob's unsealed card should match");
+    expect(adaUnsealedCard).to.eq(game.state.eCardB, "ada's unsealed card should match");
   });
 
   it("performAction should revert on invalid params", async () => {
-    const gid = 0;
+    const gid = 1;
 
     await fheKuhnPoker.connect(bob).dealMeIn(1);
     await fheKuhnPoker.connect(ada).dealMeIn(1);
-    await fheKuhnPoker.connect(bob).createGame();
+    await fheKuhnPoker.connect(bob).findGame();
 
     // Game not yet started
     await expect(fheKuhnPoker.connect(bob).performAction(gid, PlayerAction.BET)).to.be.revertedWithCustomError(
@@ -277,11 +304,11 @@ describe("FHEKuhnPoker", function () {
       "GameNotStarted",
     );
 
-    await fheKuhnPoker.connect(ada).joinGame(gid);
+    await fheKuhnPoker.connect(ada).findGame();
     let game = await fheKuhnPoker.games(gid);
 
     // Invalid gid
-    await expect(fheKuhnPoker.connect(bob).performAction(1, PlayerAction.BET)).to.be.revertedWithCustomError(
+    await expect(fheKuhnPoker.connect(bob).performAction(gid + 1, PlayerAction.BET)).to.be.revertedWithCustomError(
       fheKuhnPoker,
       "InvalidGame",
     );
@@ -293,7 +320,7 @@ describe("FHEKuhnPoker", function () {
     );
 
     // Not enough chips
-    const startingSigner = game.startingPlayer === 0n ? bob : ada;
+    const startingSigner = game.state.activePlayer === bob.address ? bob : ada;
     await expect(
       fheKuhnPoker.connect(startingSigner).performAction(gid, PlayerAction.BET),
     ).to.be.revertedWithCustomError(fheKuhnPoker, "NotEnoughChips");
@@ -311,17 +338,17 @@ describe("FHEKuhnPoker", function () {
     ).to.be.revertedWithCustomError(fheKuhnPoker, "GameEnded");
   });
 
-  it("gameplay should succeed", async () => {
-    const gid = 0;
+  it("all gameplay branches should succeed", async () => {
+    const gid = 1;
 
     await fheKuhnPoker.connect(bob).dealMeIn(100);
     await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).createGame();
-    await fheKuhnPoker.connect(ada).joinGame(gid);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
 
     const game = await fheKuhnPoker.games(gid);
-    const startingPlayer = game.startingPlayer === 0n ? bob : ada;
-    const oppositePlayer = game.startingPlayer === 0n ? ada : bob;
+    const startingPlayer = game.state.activePlayer === bob.address ? bob : ada;
+    const oppositePlayer = game.state.activePlayer === bob.address ? ada : bob;
     const actionPlayers = {
       1: { player: startingPlayer, opposite: oppositePlayer },
       2: { player: oppositePlayer, opposite: startingPlayer },
@@ -376,7 +403,7 @@ describe("FHEKuhnPoker", function () {
 
           let expectedPlayerChipChange = 0n;
           let expectedOppositeChipChange = 0n;
-          let expectedPot = game.pot;
+          let expectedPot = game.state.pot;
           let expectedCardA = 0n;
           let expectedCardB = 0n;
           let expectedWinner = ZeroAddress;
@@ -390,20 +417,20 @@ describe("FHEKuhnPoker", function () {
 
           // Action will ultimately reveal cards
           if (includesReveal) {
-            expectedCardA = game.eCardA;
-            expectedCardB = game.eCardB;
+            expectedCardA = game.state.eCardA;
+            expectedCardB = game.state.eCardB;
           }
 
           // Winner is decided by highest card
           if (includesShowdown) {
             expectedWinner = expectedCardA > expectedCardB ? bob.address : ada.address;
-            expectedOutcome = expectedWinner === bob.address ? GameOutcome.A_BY_SHOWDOWN : GameOutcome.B_BY_SHOWDOWN;
+            expectedOutcome = GameOutcome.SHOWDOWN;
           }
 
           // Player folds, winner is opposite
           if (includesFold) {
             expectedWinner = opposite.address;
-            expectedOutcome = expectedWinner === bob.address ? GameOutcome.A_BY_FOLD : GameOutcome.B_BY_FOLD;
+            expectedOutcome = GameOutcome.FOLD;
           }
 
           // Allocate chips to winner
@@ -444,7 +471,7 @@ describe("FHEKuhnPoker", function () {
           const gameFinal = await fheKuhnPoker.games(gid);
 
           // Check outcome matches expected
-          expect(gameFinal.pot).to.eq(expectedPot, "Pot is updated correctly");
+          expect(gameFinal.state.pot).to.eq(expectedPot, "Pot is updated correctly");
 
           expect((await fheKuhnPoker.chips(player.address)) - playerChips).to.eq(
             expectedPlayerChipChange,
@@ -455,7 +482,10 @@ describe("FHEKuhnPoker", function () {
             "Opposite chips updated correctly",
           );
 
-          expect(gameFinal[`action${branch.actionIndex}`]).to.eq(ACTION, "Action should be stored to correct field");
+          expect(gameFinal.state[`action${branch.actionIndex}`]).to.eq(
+            ACTION,
+            "Action should be stored to correct field",
+          );
 
           expect(gameFinal.outcome.cardA).to.eq(
             expectedCardA,
@@ -483,5 +513,295 @@ describe("FHEKuhnPoker", function () {
     };
 
     await processBranch(ExhaustiveGameBranch);
+  });
+
+  it("exiting game reversions", async () => {
+    const gid = 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+    const game = await fheKuhnPoker.getGame(gid);
+
+    // Cannot exit game that doesn't exist
+    await expect(fheKuhnPoker.connect(bob).exitGame(gid + 1)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "InvalidGame",
+    );
+
+    // Cannot exit a game you are not in
+    await expect(fheKuhnPoker.connect(signer).exitGame(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "NotPlayerInGame",
+    );
+
+    // Cannot exit game that has ended
+    await withinSnapshot(async () => {
+      await playoutGame(gid);
+      await expect(fheKuhnPoker.connect(bob).exitGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "GameEnded");
+    });
+
+    // Cannot exit game while opponent still has time
+    const waitingPlayer = game.state.activePlayer === bob.address ? ada : bob;
+    await expect(fheKuhnPoker.connect(waitingPlayer).exitGame(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "OpponentStillHasTime",
+    );
+
+    // Cannot exit game if it is your turn
+    const activePlayer = game.state.activePlayer === bob.address ? bob : ada;
+    await expect(fheKuhnPoker.connect(activePlayer).exitGame(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "ItsYourTurn",
+    );
+  });
+
+  it("users can win by timeout", async () => {
+    const gid = 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+    let game = await fheKuhnPoker.getGame(gid);
+
+    const waitingPlayer = game.state.activePlayer === bob.address ? ada : bob;
+
+    await withinSnapshot(async () => {
+      await expect(fheKuhnPoker.connect(waitingPlayer).exitGame(gid)).to.be.revertedWithCustomError(
+        fheKuhnPoker,
+        "OpponentStillHasTime",
+      );
+    });
+
+    const waitingPlayerChipsInit = await fheKuhnPoker.chips(waitingPlayer.address);
+
+    await time.increaseTo(game.state.timeout + 1n);
+    await expect(fheKuhnPoker.connect(waitingPlayer).exitGame(gid))
+      .to.emit(fheKuhnPoker, "WonByTimeout")
+      .withArgs(waitingPlayer.address, gid, game.state.pot);
+
+    game = await fheKuhnPoker.getGame(gid);
+    const waitingPlayerChipsFinal = await fheKuhnPoker.chips(waitingPlayer.address);
+
+    expect(waitingPlayerChipsFinal).to.eq(
+      waitingPlayerChipsInit + game.state.pot,
+      "WaitingPlayer given pot by timeout",
+    );
+    expect(game.outcome.outcome).to.eq(GameOutcome.TIMEOUT, "Game ended by timeout");
+    expect(game.outcome.winner).to.eq(waitingPlayer.address, "WaitingPlayer marked as winner");
+  });
+
+  it("user can cancel game that hasn't been accepted", async () => {
+    const gid = 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+
+    let bobGames = await fheKuhnPoker.getUserGames(bob.address);
+    let bobGameIds = bobGames.map(game => game.gid);
+    expect(bobGameIds).includes(BigInt(gid), "Game included in bob's games");
+
+    let openGameId = await fheKuhnPoker.openGameId();
+    expect(openGameId).to.eq(gid, "Bobs game is the open game");
+
+    const bobChipsInit = await fheKuhnPoker.chips(bob.address);
+
+    await expect(fheKuhnPoker.connect(bob).exitGame(gid))
+      .to.emit(fheKuhnPoker, "GameCancelled")
+      .withArgs(bob.address, gid);
+
+    const game = await fheKuhnPoker.getGame(gid);
+    const bobChipsFinal = await fheKuhnPoker.chips(bob.address);
+
+    expect(bobChipsFinal).to.eq(bobChipsInit + game.state.pot, "Bob given his ante back");
+    expect(game.outcome.outcome).to.eq(GameOutcome.CANCEL, "Game cancelled");
+    expect(game.outcome.winner).to.eq(ZeroAddress, "Cancelled game has no winner");
+
+    bobGames = await fheKuhnPoker.getUserGames(bob.address);
+    bobGameIds = bobGames.map(game => game.gid);
+
+    expect(bobGameIds).not.includes(BigInt(gid), "Game removed from bob's games");
+
+    openGameId = await fheKuhnPoker.openGameId();
+    expect(openGameId).to.eq(0, "No active open game (bobs game removed)");
+  });
+
+  it("rematch reversions", async () => {
+    const gid = 1;
+    const rematchGid = gid + 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+
+    await playoutGame(gid);
+
+    // Invalid game
+    await expect(fheKuhnPoker.connect(bob).rematch(gid + 1)).to.be.revertedWithCustomError(fheKuhnPoker, "InvalidGame");
+
+    // Not player in game
+    await expect(fheKuhnPoker.connect(signer).rematch(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "NotPlayerInGame",
+    );
+
+    await fheKuhnPoker.connect(bob).rematch(gid);
+
+    // Rematch has been cancelled
+    await withinSnapshot(async () => {
+      await fheKuhnPoker.connect(bob).exitGame(rematchGid);
+      expect((await fheKuhnPoker.getGame(rematchGid)).outcome.outcome).to.eq(
+        GameOutcome.CANCEL,
+        "Bob cancelled the rematch",
+      );
+      await expect(fheKuhnPoker.connect(ada).rematch(gid)).to.be.revertedWithCustomError(
+        fheKuhnPoker,
+        "RematchCancelled",
+      );
+    });
+
+    // PlayerA - Already requested rematch
+    await expect(fheKuhnPoker.connect(bob).rematch(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "AlreadyRequestedRematch",
+    );
+
+    // PlayerB - Already accepted rematch
+    await fheKuhnPoker.connect(ada).rematch(gid);
+    expect((await fheKuhnPoker.getGame(rematchGid)).state.accepted).to.eq(true, "Ada accepted rematch");
+    await expect(fheKuhnPoker.connect(ada).rematch(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "AlreadyAcceptedRematch",
+    );
+  });
+
+  it("user can request a rematch after the game ends", async () => {
+    const gid = 1;
+    const rematchGid = gid + 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+
+    await playoutGame(gid);
+
+    const bobChipsInit = await fheKuhnPoker.chips(bob.address);
+
+    await expect(fheKuhnPoker.connect(bob).rematch(gid))
+      .to.emit(fheKuhnPoker, "RematchCreated")
+      .withArgs(bob.address, rematchGid);
+
+    const originalGame = await fheKuhnPoker.getGame(gid);
+    const rematchGame = await fheKuhnPoker.getGame(rematchGid);
+    const openGameId = await fheKuhnPoker.openGameId();
+    const bobChipsFinal = await fheKuhnPoker.chips(bob.address);
+
+    expect(originalGame.outcome.rematchGid).to.eq(rematchGame.gid, "Rematch GID set correctly");
+
+    expect(rematchGame.isRematch).to.eq(true, "Marked as rematch");
+    expect(rematchGame.playerA).to.eq(bob.address, "Bob rematched, so bob is playerA");
+    expect(rematchGame.playerB).to.eq(ada.address, "Ada is remaining player from original game, so ada is playerB");
+
+    expect(openGameId).to.eq(0, "Rematch should not be considered an open game");
+
+    expect(bobChipsFinal).to.eq(bobChipsInit - 1n, "Bob anted in on rematch");
+  });
+  it("user can cancel their rematch request", async () => {
+    const gid = 1;
+    const rematchGid = gid + 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+
+    await playoutGame(gid);
+
+    await fheKuhnPoker.connect(bob).rematch(gid);
+
+    // Ada cannot cancel bobs rematch
+    await expect(fheKuhnPoker.connect(ada).exitGame(rematchGid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "NotPlayerInGame",
+    );
+
+    // Bob can cancel his own rematch
+    await expect(fheKuhnPoker.connect(bob).exitGame(rematchGid))
+      .to.emit(fheKuhnPoker, "GameCancelled")
+      .withArgs(bob.address, rematchGid);
+  });
+  it("user can accept a rematch and start a new game", async () => {
+    const gid = 1;
+    const rematchGid = gid + 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+
+    await playoutGame(gid);
+
+    let bobGameIds = (await fheKuhnPoker.getUserGames(bob.address)).map(game => game.gid);
+    expect(bobGameIds).to.deep.eq([1n], "Bob only played game 1");
+
+    await fheKuhnPoker.connect(bob).rematch(gid);
+
+    bobGameIds = (await fheKuhnPoker.getUserGames(bob.address)).map(game => game.gid);
+    expect(bobGameIds).to.deep.eq([1n], "Requesting a rematch does not add it to the users games");
+
+    await expect(fheKuhnPoker.connect(ada).rematch(gid))
+      .to.emit(fheKuhnPoker, "RematchAccepted")
+      .withArgs(ada.address, rematchGid);
+
+    bobGameIds = (await fheKuhnPoker.getUserGames(bob.address)).map(game => game.gid);
+    expect(bobGameIds).to.deep.eq([1n, 2n], "Ada accepting rematch adds it to bobs games");
+
+    // Rematch can be played
+    await playoutGame(rematchGid);
+  });
+  it("all games between to players are added to pairGames", async () => {
+    let gid = 1;
+
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+
+    await playoutGame(gid);
+
+    let pairGames = await fheKuhnPoker.getPairGames(bob.address, ada.address);
+    let pairGameIds = pairGames.map(game => game.gid);
+    const pairGames2 = await fheKuhnPoker.getPairGames(ada.address, bob.address);
+    expect(pairGameIds).to.deep.eq(
+      pairGames2.map(game => game.gid),
+      "Pair games users order shouldn't matter",
+    );
+    expect(pairGameIds).to.deep.eq([1n], "Pair has played games: [1]");
+
+    await fheKuhnPoker.connect(bob).rematch(gid);
+    await fheKuhnPoker.connect(ada).rematch(gid);
+
+    gid += 1;
+    await playoutGame(gid);
+
+    pairGames = await fheKuhnPoker.getPairGames(bob.address, ada.address);
+    pairGameIds = pairGames.map(game => game.gid);
+    expect(pairGameIds).to.deep.eq([1n, 2n], "Pair has played games: [1, 2]");
+
+    // Reversed order
+    await fheKuhnPoker.connect(ada).rematch(gid);
+    await fheKuhnPoker.connect(bob).rematch(gid);
+
+    gid += 1;
+    await playoutGame(gid);
+
+    // Reversed order here
+    pairGames = await fheKuhnPoker.getPairGames(ada.address, bob.address);
+    pairGameIds = pairGames.map(game => game.gid);
+    expect(pairGameIds).to.deep.eq([1n, 2n, 3n], "Pair has played games: [1, 2, 3]");
   });
 });
