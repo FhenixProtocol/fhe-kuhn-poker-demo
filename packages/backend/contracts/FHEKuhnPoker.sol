@@ -21,10 +21,10 @@ enum Action {
 
 enum Outcome {
 	EMPTY,
-	A_BY_SHOWDOWN,
-	B_BY_SHOWDOWN,
-	A_BY_FOLD,
-	B_BY_FOLD
+	SHOWDOWN,
+	FOLD,
+	TIMEOUT,
+	CANCEL
 }
 
 struct Game {
@@ -33,8 +33,9 @@ struct Game {
 	address playerB;
 	bool accepted;
 	uint8 pot;
+	uint64 timeout;
 	//
-	uint8 startingPlayer;
+	address activePlayer;
 	euint8 eCardA;
 	euint8 eCardB;
 	//
@@ -43,6 +44,8 @@ struct Game {
 	Action action3;
 	//
 	GameOutcome outcome;
+	//
+	uint256 rematchGid;
 }
 struct GameOutcome {
 	uint256 gid;
@@ -60,6 +63,7 @@ contract FHEKuhnPoker is Permissioned {
 	address public owner;
 
 	uint256 public gid = 0;
+	uint64 public timeoutDuration = 2 minutes;
 
 	euint8 private euint3 = FHE.asEuint8(3);
 	euint8 private euint2 = FHE.asEuint8(2);
@@ -68,7 +72,9 @@ contract FHEKuhnPoker is Permissioned {
 	mapping(address => uint256) public chips;
 	mapping(uint256 => Game) public games;
 	mapping(address => EnumerableSet.UintSet) private userGames;
-	EnumerableSet.UintSet private openGames;
+	mapping(address => mapping(address => EnumerableSet.UintSet))
+		private pairGames;
+	uint256 public openGameId = 0;
 
 	constructor() {
 		owner = msg.sender;
@@ -76,7 +82,10 @@ contract FHEKuhnPoker is Permissioned {
 
 	event PlayerDealtIn(address indexed user, uint256 chips);
 	event GameCreated(address indexed playerA, uint256 indexed gid);
-	event GameAccepted(address indexed playerB, uint256 indexed gid);
+	event GameCancelled(address indexed player, uint256 indexed gid);
+	event RematchCreated(address indexed playerA, uint256 indexed gid);
+	event GameJoined(address indexed playerB, uint256 indexed gid);
+	event RematchAccepted(address indexed playerB, uint256 indexed gid);
 	event PerformedGameAction(
 		address indexed player,
 		uint256 indexed gid,
@@ -89,44 +98,161 @@ contract FHEKuhnPoker is Permissioned {
 		uint256 pot
 	);
 	event WonByFold(address indexed winner, uint256 indexed gid, uint256 pot);
+	event WonByTimeout(
+		address indexed winner,
+		uint256 indexed gid,
+		uint256 pot
+	);
 
 	error InvalidGame();
 	error NotEnoughChips();
 	error InvalidPlayerB();
 	error GameNotStarted();
 	error GameEnded();
+	error RematchCancelled();
 	error NotPlayerInGame();
 	error InvalidAction();
 	error NotYourTurn();
+	error AlreadyRequestedRematch();
+	error AlreadyAcceptedRematch();
+	error OpponentStillHasTime();
+
+	// CHIP
 
 	function dealMeIn(uint256 chipCount) public {
 		chips[msg.sender] += chipCount;
 		emit PlayerDealtIn(msg.sender, chipCount);
 	}
 
-	function createGame() public {
+	// GAME MANAGEMENT
+
+	function findGame() public {
+		if (openGameId == 0) {
+			_createOpenGame();
+		} else {
+			_joinOpenGame(openGameId);
+		}
+	}
+
+	function rematch(uint256 _gid) public {
+		if (_gid > gid) revert InvalidGame();
+
+		Game storage game = games[_gid];
+		if (msg.sender != game.playerA && msg.sender != game.playerB)
+			revert NotPlayerInGame();
+
+		// Create a rematch if it doesn't exist
+		if (game.rematchGid == 0) {
+			address playerB = msg.sender == game.playerA
+				? game.playerB
+				: game.playerA;
+			game.rematchGid = _createRematch(playerB);
+			return;
+		}
+
+		Game memory rematchGame = games[game.rematchGid];
+
+		if (msg.sender == rematchGame.playerA) revert AlreadyRequestedRematch();
+		if (rematchGame.accepted) revert AlreadyAcceptedRematch();
+
+		if (rematchGame.outcome.outcome == Outcome.CANCEL)
+			revert RematchCancelled();
+
+		_acceptRematch(game.rematchGid);
+	}
+
+	function exitGame(uint256 _gid) public {
+		if (_gid > gid) revert InvalidGame();
+
+		Game storage game = games[_gid];
+		if (msg.sender != game.playerA && msg.sender != game.playerB)
+			revert NotPlayerInGame();
+
+		if (game.outcome.outcome != Outcome.EMPTY) revert GameEnded();
+
+		if (game.accepted && block.timestamp < game.timeout)
+			revert OpponentStillHasTime();
+
+		// Exit before game is accepted cancels game
+		if (!game.accepted) {
+			game.outcome.outcome = Outcome.CANCEL;
+			chips[msg.sender] += game.pot;
+			userGames[msg.sender].remove(_gid);
+
+			// If cancelling game is the open game, remove it
+			if (game.gid == openGameId) openGameId = 0;
+
+			emit GameCancelled(msg.sender, _gid);
+		}
+
+		// Winner decided by timeout
+		game.outcome.outcome = Outcome.TIMEOUT;
+		game.outcome.winner = msg.sender;
+		chips[game.outcome.winner] += game.pot;
+
+		emit WonByTimeout(game.outcome.winner, game.gid, game.pot);
+	}
+
+	function _createOpenGame() internal returns (uint256 _gid) {
+		_gid = _createGameInner();
+
+		// Add game to user's games
+		// Mark this game as the open game
+		userGames[msg.sender].add(gid);
+		openGameId = _gid;
+
+		emit GameCreated(msg.sender, _gid);
+	}
+
+	function _createRematch(address playerB) internal returns (uint256 _gid) {
+		_gid = _createGameInner();
+
+		// Rematches already know both players
+		games[_gid].playerB = playerB;
+
+		emit RematchCreated(msg.sender, _gid);
+	}
+
+	function _createGameInner() internal returns (uint256) {
 		Game storage game = games[gid];
 		game.gid = gid;
 		game.playerA = msg.sender;
 
-		userGames[msg.sender].add(gid);
-		openGames.add(gid);
-
 		// Take ante from player
 		takeChip(game);
 
-		emit GameCreated(msg.sender, gid);
 		gid += 1;
+
+		return game.gid;
 	}
 
-	function joinGame(uint256 _gid) public {
-		if (_gid >= gid) revert InvalidGame();
+	function _joinOpenGame(uint256 _gid) internal {
+		if (games[_gid].playerA == msg.sender) revert InvalidPlayerB();
+		_joinGameInner(_gid);
 
-		Game storage game = games[_gid];
-		if (game.playerA == msg.sender) revert InvalidPlayerB();
-
+		// Add to user games
+		// Remove as open game
 		userGames[msg.sender].add(_gid);
-		openGames.remove(_gid);
+		openGameId = 0;
+		_addGameToPair(_gid);
+
+		emit GameJoined(msg.sender, _gid);
+	}
+
+	function _acceptRematch(uint256 _gid) internal {
+		if (games[_gid].playerB != msg.sender) revert NotPlayerInGame();
+		_joinGameInner(_gid);
+
+		// Add game to both users (not done during create step for rematches)
+		userGames[games[_gid].playerA].add(_gid);
+		userGames[games[_gid].playerB].add(_gid);
+		_addGameToPair(_gid);
+
+		emit RematchAccepted(msg.sender, _gid);
+	}
+
+	function _joinGameInner(uint256 _gid) internal {
+		Game storage game = games[_gid];
 
 		// Take ante from player
 		takeChip(game);
@@ -134,10 +260,12 @@ contract FHEKuhnPoker is Permissioned {
 		// Start game
 		game.accepted = true;
 		game.playerB = msg.sender;
+		game.timeout = uint64(block.timestamp) + timeoutDuration;
 
 		// Random value between 0 and 1
 		// FHE randomness is leveraged, but it does not need to remain encrypted
-		game.startingPlayer = FHE.decrypt(FHE.randomEuint8()) % 2;
+		uint8 startingPlayer = FHE.decrypt(FHE.randomEuint8()) % 2;
+		game.activePlayer = startingPlayer == 0 ? game.playerA : game.playerB;
 
 		// Random card selection:
 		// 1. A random number is generated
@@ -150,21 +278,34 @@ contract FHEKuhnPoker is Permissioned {
 
 		euint8 randOffset = FHE.randomEuint8().rem(euint2).add(euint1);
 		game.eCardB = rand.add(randOffset).rem(euint3);
-
-		emit GameAccepted(msg.sender, _gid);
 	}
 
-	function validatePlayer1(Game storage game) internal view {
-		if (
-			msg.sender !=
-			(game.startingPlayer == 0 ? game.playerA : game.playerB)
-		) revert NotYourTurn();
+	function _sortPlayers(
+		address _playerA,
+		address _playerB
+	) internal pure returns (address, address) {
+		if (_playerA < _playerB) {
+			return (_playerA, _playerB);
+		} else {
+			return (_playerB, _playerA);
+		}
 	}
-	function validatePlayer2(Game storage game) internal view {
-		if (
-			msg.sender !=
-			(game.startingPlayer == 0 ? game.playerB : game.playerA)
-		) revert NotYourTurn();
+
+	function _addGameToPair(uint256 _gid) internal {
+		(address p1, address p2) = _sortPlayers(
+			games[_gid].playerA,
+			games[_gid].playerB
+		);
+		pairGames[p1][p2].add(_gid);
+	}
+
+	// GAMEPLAY
+
+	function continueGame(Game storage game) internal {
+		game.timeout = uint64(block.timestamp) + timeoutDuration;
+		game.activePlayer = game.activePlayer == game.playerA
+			? game.playerB
+			: game.playerA;
 	}
 
 	function takeChip(Game storage game) internal {
@@ -176,48 +317,49 @@ contract FHEKuhnPoker is Permissioned {
 	}
 
 	function showdown(Game storage game) internal {
+		game.timeout = 0;
+		game.activePlayer = address(0);
+
 		game.outcome.cardA = game.eCardA.decrypt();
 		game.outcome.cardB = game.eCardB.decrypt();
 		game.outcome.winner = game.outcome.cardA > game.outcome.cardB
 			? game.playerA
 			: game.playerB;
 		chips[game.outcome.winner] += game.pot;
-		game.outcome.outcome = game.outcome.winner == game.playerA
-			? Outcome.A_BY_SHOWDOWN
-			: Outcome.B_BY_SHOWDOWN;
+		game.outcome.outcome = Outcome.SHOWDOWN;
 
 		emit WonByShowdown(game.outcome.winner, game.gid, game.pot);
 	}
 
 	function fold(Game storage game) internal {
+		game.timeout = 0;
+		game.activePlayer = address(0);
+
 		game.outcome.cardA = game.eCardA.decrypt();
 		game.outcome.cardB = game.eCardB.decrypt();
 		game.outcome.winner = msg.sender == game.playerA
 			? game.playerB
 			: game.playerA;
 		chips[game.outcome.winner] += game.pot;
-		game.outcome.outcome = game.outcome.winner == game.playerA
-			? Outcome.A_BY_FOLD
-			: Outcome.B_BY_FOLD;
+		game.outcome.outcome = Outcome.FOLD;
 
 		emit WonByFold(game.outcome.winner, game.gid, game.pot);
 	}
 
 	function handle_Action(Game storage game, Action action) internal {
-		validatePlayer1(game);
 		game.action1 = action;
 
 		if (action == Action.BET) {
 			takeChip(game);
+			continueGame(game);
 		} else if (action == Action.CHECK) {
-			// noop
+			continueGame(game);
 		} else {
 			revert InvalidAction();
 		}
 	}
 
 	function handle_Bet_Action(Game storage game, Action action) internal {
-		validatePlayer2(game);
 		game.action2 = action;
 
 		if (action == Action.CALL) {
@@ -231,11 +373,11 @@ contract FHEKuhnPoker is Permissioned {
 	}
 
 	function handle_Check_Action(Game storage game, Action action) internal {
-		validatePlayer2(game);
 		game.action2 = action;
 
 		if (action == Action.BET) {
 			takeChip(game);
+			continueGame(game);
 		} else if (action == Action.CHECK) {
 			showdown(game);
 		} else {
@@ -247,7 +389,6 @@ contract FHEKuhnPoker is Permissioned {
 		Game storage game,
 		Action action
 	) internal {
-		validatePlayer1(game);
 		game.action3 = action;
 
 		if (action == Action.CALL) {
@@ -267,7 +408,8 @@ contract FHEKuhnPoker is Permissioned {
 		if (msg.sender != game.playerA && msg.sender != game.playerB)
 			revert NotPlayerInGame();
 		if (!game.accepted) revert GameNotStarted();
-		if (game.outcome.winner != address(0)) revert GameEnded();
+		if (game.outcome.outcome != Outcome.EMPTY) revert GameEnded();
+		if (msg.sender != game.activePlayer) revert NotYourTurn();
 
 		emit PerformedGameAction(msg.sender, _gid, action);
 
@@ -293,6 +435,8 @@ contract FHEKuhnPoker is Permissioned {
 			}
 		}
 	}
+
+	// VIEW
 
 	function getGameCard(
 		Permission memory permission,
@@ -324,12 +468,20 @@ contract FHEKuhnPoker is Permissioned {
 		}
 	}
 
-	function getOpenGames() external view returns (Game[] memory ret) {
-		uint256 openGamesCount = openGames.length();
-		ret = new Game[](openGamesCount);
+	function getPairGames(
+		address _playerA,
+		address _playerB
+	) external view returns (Game[] memory ret) {
+		(address p1, address p2) = _sortPlayers(_playerA, _playerB);
+		uint256 pairGamesCount = pairGames[p1][p2].length();
+		ret = new Game[](pairGamesCount);
 
-		for (uint256 i = 0; i < openGamesCount; i++) {
-			ret[i] = games[openGames.at(i)];
+		for (uint256 i = 0; i < pairGamesCount; i++) {
+			ret[i] = games[pairGames[p1][p2].at(i)];
 		}
+	}
+
+	function getOpenGame() external view returns (Game memory openGame) {
+		openGame = games[openGameId];
 	}
 }
