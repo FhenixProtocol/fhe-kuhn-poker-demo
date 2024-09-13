@@ -71,6 +71,14 @@ describe("FHEKuhnPoker", function () {
     await revertSnapshot(snapshotId);
   });
 
+  const createGame = async () => {
+    await fheKuhnPoker.connect(bob).dealMeIn(100);
+    await fheKuhnPoker.connect(ada).dealMeIn(100);
+    await fheKuhnPoker.connect(bob).findGame();
+    await fheKuhnPoker.connect(ada).findGame();
+    return Number(await fheKuhnPoker.gid());
+  };
+
   const getValidGamePlayerAndAction = async (gid: number) => {
     const game = await fheKuhnPoker.getGame(gid);
     const player = game.state.activePlayer === bob.address ? bob : ada;
@@ -246,12 +254,7 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("getGameCard should revert on invalid params", async () => {
-    const gid = 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
+    const gid = await createGame();
 
     // Revert if invalid gid
     let permission = await createFhenixContractPermission(hre, bob, fheKuhnPokerAddress);
@@ -276,12 +279,7 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("getGameCard should return sealed card", async () => {
-    const gid = 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
+    const gid = await createGame();
 
     const game = await fheKuhnPoker.games(gid);
 
@@ -345,12 +343,7 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("all gameplay branches should succeed", async () => {
-    const gid = 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
+    const gid = await createGame();
 
     const game = await fheKuhnPoker.games(gid);
     const startingPlayer = game.state.activePlayer === bob.address ? bob : ada;
@@ -522,12 +515,7 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("exiting game reversions", async () => {
-    const gid = 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
+    const gid = await createGame();
     const game = await fheKuhnPoker.getGame(gid);
 
     // Cannot exit game that doesn't exist
@@ -564,12 +552,7 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("users can win by timeout", async () => {
-    const gid = 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
+    const gid = await createGame();
     let game = await fheKuhnPoker.getGame(gid);
 
     const waitingPlayer = game.state.activePlayer === bob.address ? ada : bob;
@@ -635,13 +618,8 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("rematch reversions", async () => {
-    const gid = 1;
+    const gid = await createGame();
     const rematchGid = gid + 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
 
     await playoutGame(gid);
 
@@ -694,13 +672,8 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("user can request a rematch after the game ends", async () => {
-    const gid = 1;
+    const gid = await createGame();
     const rematchGid = gid + 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
 
     await playoutGame(gid);
 
@@ -730,13 +703,8 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("user can cancel their rematch request", async () => {
-    const gid = 1;
+    const gid = await createGame();
     const rematchGid = gid + 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
 
     await playoutGame(gid);
 
@@ -755,13 +723,8 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("rematch requests are cancelled automatically when the user finds a new game", async () => {
-    const gid = 1;
+    const gid = await createGame();
     const rematchGid = gid + 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
 
     await playoutGame(gid);
 
@@ -783,13 +746,8 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("user can accept a rematch and start a new game", async () => {
-    const gid = 1;
+    const gid = await createGame();
     const rematchGid = gid + 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
 
     await playoutGame(gid);
 
@@ -816,12 +774,7 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("all games between to players are added to pairGames", async () => {
-    let gid = 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
+    let gid = await createGame();
 
     await playoutGame(gid);
 
@@ -901,12 +854,7 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("finding a new game will resign the user from their existing game", async () => {
-    const gid = 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
+    const gid = await createGame();
 
     await expect(fheKuhnPoker.connect(bob).findGame())
       .to.emit(fheKuhnPoker, "WonByResignation")
@@ -914,13 +862,8 @@ describe("FHEKuhnPoker", function () {
   });
 
   it("finding a new game will resign the user from their existing rematch", async () => {
-    const gid = 1;
+    const gid = await createGame();
     const rematchGid = gid + 1;
-
-    await fheKuhnPoker.connect(bob).dealMeIn(100);
-    await fheKuhnPoker.connect(ada).dealMeIn(100);
-    await fheKuhnPoker.connect(bob).findGame();
-    await fheKuhnPoker.connect(ada).findGame();
 
     await playoutGame(gid);
 
