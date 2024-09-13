@@ -5,16 +5,24 @@ const Card = ({
   faceDown = false,
   ping = false,
   gold = false,
+  empty = false,
 }: {
   children: React.ReactNode;
   faceDown?: boolean;
   ping?: boolean;
   gold?: boolean;
+  empty?: boolean;
 }) => (
   <div
-    className={`w-24 h-34 bg-gradient-to-br ${
-      gold ? " from-amber-300 to-yellow-500" : faceDown ? "from-sky-600 to-blue-800" : "from-slate-50 to-gray-100"
-    } rounded-md shadow-md flex items-center justify-center m-2 relative ${ping ? "animate-wiggle" : ""}`}
+    className={`w-24 h-34 grow bg-gradient-to-br ${
+      empty
+        ? "from-green-700 to-green-700"
+        : gold
+        ? "from-amber-300 to-yellow-500 shadow-md"
+        : faceDown
+        ? "from-sky-600 to-blue-800 shadow-md"
+        : "from-slate-50 to-gray-100 shadow-md"
+    } rounded-md flex items-center justify-center m-2 relative ${ping ? "animate-wiggle" : ""}`}
   >
     {children}
   </div>
@@ -83,17 +91,18 @@ const CardBack = () => (
 
 export const PlayingCard: React.FC<{
   gold?: boolean;
+  empty?: boolean;
   rank?: "K" | "J" | "Q";
   suit: "red" | "black";
   hidden?: boolean;
   wiggle?: boolean;
   children?: React.ReactNode;
-}> = ({ rank, suit, hidden = false, wiggle = false, gold = false, children }) => {
+}> = ({ rank, empty, suit, hidden = false, wiggle = false, gold = false, children }) => {
   return (
-    <Card ping={wiggle} gold={gold}>
+    <Card ping={wiggle} gold={gold} empty={empty}>
       {/* {ping && <div className="absolute inset-4 animate-ping bg-black rounded-2xl -z-10 blur-md opacity-40" />} */}
-      {hidden && <CardBack />}
-      {!hidden && rank != null && <CardFace rank={rank} suit={suit} />}
+      {hidden && !empty && <CardBack />}
+      {!hidden && !empty && rank != null && <CardFace rank={rank} suit={suit} />}
       {children}
     </Card>
   );

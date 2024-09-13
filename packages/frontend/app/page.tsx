@@ -50,6 +50,7 @@ const RevealCardButton = () => {
 };
 
 type PlayerProps = {
+  gid: bigint | undefined;
   player: 1 | 2;
   address: string;
   suit: "red" | "black";
@@ -62,6 +63,7 @@ type PlayerProps = {
   outcome: GameOutcome;
 };
 const PlayerWithCard = ({
+  gid,
   player,
   address,
   card,
@@ -101,9 +103,16 @@ const PlayerWithCard = ({
       </div>
       <br />
       <div className="text-white m-2 text-sm">
-        CHIPS: <b className="text-lg">{chips == null ? "..." : chips.toString()}</b>
+        CHIPS: <code className="text-lg">{chips == null ? "..." : chips.toString()}</code>
       </div>
-      <PlayingCard suit={suit} rank={symbol} hidden={hidden} gold={isWinner} wiggle={isActivePlayer || isWinner}>
+      <PlayingCard
+        empty={gid == null || gid === 0n}
+        suit={suit}
+        rank={symbol}
+        hidden={hidden}
+        gold={isWinner}
+        wiggle={isActivePlayer || isWinner}
+      >
         {requiresPermissionToReveal && <RevealCardButton />}
       </PlayingCard>
       <br />
@@ -182,6 +191,7 @@ const OppositePlayerSeat: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
 
   return (
     <PlayerWithCard
+      gid={gid}
       player={1}
       address={playerAddress}
       chips={chips}
@@ -202,12 +212,12 @@ const GamePot: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
     args: [gid],
   });
 
-  if (gid == null || game == null) return null;
-
-  <div className="flex flex-col justify-center items-center text-white">
-    <span className="text-sm">POT:</span>
-    <b className="text-3xl">{game.state.pot.toString()}</b>
-  </div>;
+  return (
+    <div className="flex flex-col justify-center items-center text-white">
+      <span className="text-sm">POT:</span>
+      <code className="text-4xl">{game == null ? 0 : game.state.pot.toString()}</code>
+    </div>
+  );
 };
 
 const PlayerSeat: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
@@ -238,7 +248,6 @@ const PlayerSeat: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
 
   const userIsPlayerA = game.playerA === address;
   const player1 = userIsPlayerA ? game.playerB : game.playerA;
-  const player2 = userIsPlayerA ? game.playerA : game.playerB;
 
   const actionIndex = getGameActionIndex(game);
   const activePlayer = game.state.activePlayer;
@@ -258,14 +267,15 @@ const PlayerSeat: React.FC<{ gid: bigint | undefined }> = ({ gid }) => {
 
   return (
     <PlayerWithCard
+      gid={gid}
       player={2}
-      address={player2}
+      address={address ?? ZeroAddress}
       suit={suit}
       chips={chips}
       card={playerCard == null ? undefined : Number(playerCard)}
       activePlayer={activePlayer}
       playersActions={player2Actions}
-      requiresPermissionToReveal={playerCard == null}
+      requiresPermissionToReveal={gid !== 0n && playerCard == null}
       winner={winner}
       outcome={outcome}
     />
