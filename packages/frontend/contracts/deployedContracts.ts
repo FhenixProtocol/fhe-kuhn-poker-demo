@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   412346: {
     Counter: {
-      address: "0xbeb4eF1fcEa618C6ca38e3828B00f8D481EC2CC2",
+      address: "0x5c93e3B7824035B375E373FaC1578D4089dcE77A",
       abi: [
         {
           inputs: [],
@@ -247,7 +247,7 @@ const deployedContracts = {
       },
     },
     FHEKuhnPoker: {
-      address: "0xB170fC5BAC4a87A63fC84653Ee7e0db65CC62f96",
+      address: "0x538C04cd32B199be1c7A88f8eB51E8DbeFEb0131",
       abi: [
         {
           inputs: [],
@@ -1328,6 +1328,16 @@ const deployedContracts = {
                   internalType: "struct Game",
                   name: "game",
                   type: "tuple",
+                },
+                {
+                  internalType: "uint256",
+                  name: "selfChips",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "opponentChips",
+                  type: "uint256",
                 },
                 {
                   internalType: "uint256",

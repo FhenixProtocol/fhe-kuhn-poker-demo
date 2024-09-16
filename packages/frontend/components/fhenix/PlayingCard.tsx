@@ -1,49 +1,60 @@
 import React from "react";
+import { tv } from "tailwind-variants";
+import { cardRankSymbol } from "./utils";
+import { KuhnCard, PopulatedKuhnCard } from "~~/services/store/game";
+
+const playingCard = tv({
+  base: "w-24 h-36 min-h-[9rem] rounded-md flex items-center justify-center m-2 relative",
+  variants: {
+    color: {
+      empty: "bg-gradient-to-br from-green-700 to-green-700",
+      gold: "bg-gradient-to-br from-amber-300 to-yellow-500 shadow-md",
+      blue: "bg-gradient-to-br from-sky-600 to-blue-800 shadow-md",
+      white: "bg-gradient-to-br from-slate-50 to-gray-100 shadow-md",
+    },
+    wiggle: {
+      true: "animate-wiggle",
+    },
+  },
+});
 
 const Card = ({
   children,
-  faceDown = false,
-  ping = false,
+  card,
+  wiggle = false,
   gold = false,
-  empty = false,
 }: {
   children: React.ReactNode;
-  faceDown?: boolean;
-  ping?: boolean;
+  card: KuhnCard;
+  wiggle?: boolean;
   gold?: boolean;
-  empty?: boolean;
 }) => (
   <div
-    className={`w-24 h-36 min-h-[9rem] bg-gradient-to-br ${
-      empty
-        ? "from-green-700 to-green-700"
-        : gold
-        ? "from-amber-300 to-yellow-500 shadow-md"
-        : faceDown
-        ? "from-sky-600 to-blue-800 shadow-md"
-        : "from-slate-50 to-gray-100 shadow-md"
-    } rounded-md flex items-center justify-center m-2 relative ${ping ? "animate-wiggle" : ""}`}
+    className={playingCard({
+      color: card === "empty" ? "empty" : gold ? "gold" : card === "hidden" ? "blue" : "white",
+      wiggle: wiggle,
+    })}
   >
     {children}
   </div>
 );
 
-const CardFace = ({ rank, suit }: { rank: "K" | "Q" | "J"; suit: "red" | "black" }) => {
+const CardFace = ({ card: { suit, rank } }: { card: PopulatedKuhnCard }) => {
   const hexColor = suit === "red" ? "#EF4444" : "#1F2937";
   return (
     <svg className="w-full h-full" viewBox="0 0 100 150">
       <text x="10" y="25" fontSize="16" fill={hexColor} className="font-bold">
-        {rank}
+        {cardRankSymbol(rank)}
       </text>
       <text x="75" y="18" fontSize="16" fill={hexColor} className="font-bold">
         —
       </text>
-      {(rank === "K" || rank === "Q") && (
+      {(rank === 2 || rank === 1) && (
         <text x="75" y="23" fontSize="16" fill={hexColor} className="font-bold">
           —
         </text>
       )}
-      {rank === "K" && (
+      {rank === 2 && (
         <text x="75" y="28" fontSize="16" fill={hexColor} className="font-bold">
           —
         </text>
@@ -51,20 +62,20 @@ const CardFace = ({ rank, suit }: { rank: "K" | "Q" | "J"; suit: "red" | "black"
       <text x="90" y="160" fontSize="16" fill={hexColor} className="font-bold" transform="rotate(180 90 145)">
         {rank}
       </text>
-      {rank === "K" && (
+      {rank === 2 && (
         <g fill={hexColor}>
           <rect x="35" y="45" width="30" height="60" fill="none" stroke="currentColor" strokeWidth="2" />
           <circle cx="50" cy="60" r="8" />
           <path d="M42 85 H58 M50 77 V93" strokeWidth="2" />
         </g>
       )}
-      {rank === "Q" && (
+      {rank === 1 && (
         <g fill={hexColor}>
           <circle cx="50" cy="65" r="15" fill={hexColor} />
           <path d="M42 90 Q50 100 58 90" strokeWidth="2" fill="none" />
         </g>
       )}
-      {rank === "J" && (
+      {rank === 0 && (
         <g fill={hexColor}>
           <rect x="45" y="50" width="10" height="50" fill="none" stroke="currentColor" strokeWidth="2" />
           <circle cx="50" cy="65" r="8" />
@@ -90,19 +101,15 @@ const CardBack = () => (
 );
 
 export const PlayingCard: React.FC<{
+  card: KuhnCard;
   gold?: boolean;
-  empty?: boolean;
-  rank?: "K" | "J" | "Q";
-  suit: "red" | "black";
-  hidden?: boolean;
   wiggle?: boolean;
   children?: React.ReactNode;
-}> = ({ rank, empty, suit, hidden = false, wiggle = false, gold = false, children }) => {
+}> = ({ card, wiggle = false, gold = false, children }) => {
   return (
-    <Card ping={wiggle} gold={gold} empty={empty}>
+    <Card wiggle={wiggle} gold={gold} card={card}>
       {/* {ping && <div className="absolute inset-4 animate-ping bg-black rounded-2xl -z-10 blur-md opacity-40" />} */}
-      {hidden && !empty && <CardBack />}
-      {!hidden && !empty && rank != null && <CardFace rank={rank} suit={suit} />}
+      {card === "empty" ? null : card === "hidden" ? <CardBack /> : <CardFace card={card} />}
       {children}
     </Card>
   );

@@ -1,52 +1,4 @@
-import { ZeroAddress } from "ethers";
-import { AbiFunctionReturnType, ContractAbi } from "~~/utils/scaffold-eth/contract";
-
-export enum GameOutcome {
-  EMPTY,
-  SHOWDOWN,
-  FOLD,
-  TIMEOUT,
-  CANCEL,
-  RESIGN,
-}
-
-export enum PlayerAction {
-  EMPTY,
-  CHECK,
-  BET,
-  FOLD,
-  CALL,
-}
-
-export type GameInfo = AbiFunctionReturnType<ContractAbi<"FHEKuhnPoker">, "getGame">;
-export type GidsState = AbiFunctionReturnType<ContractAbi<"FHEKuhnPoker">, "getUserGameState">;
-
-export const EmptyGameInfo: GameInfo = {
-  gid: 0n,
-  rematchingGid: 0n,
-  playerA: ZeroAddress,
-  playerB: ZeroAddress,
-  state: {
-    accepted: false,
-    eCardA: 0n,
-    eCardB: 0n,
-    pot: 0,
-    startingPlayer: ZeroAddress,
-    activePlayer: ZeroAddress,
-    timeout: 0n,
-    action1: 0,
-    action2: 0,
-    action3: 0,
-  },
-  outcome: {
-    gid: 0n,
-    cardA: 0,
-    cardB: 0,
-    winner: ZeroAddress,
-    outcome: GameOutcome.EMPTY,
-    rematchGid: 0n,
-  },
-};
+import { GameInfo, PlayerAction, ActionOption } from "~~/services/store/game";
 
 export const getGameActionIndex = (game?: GameInfo) => {
   if (game == null) return 1;
@@ -55,22 +7,16 @@ export const getGameActionIndex = (game?: GameInfo) => {
   return 3;
 };
 
-export const outcomeToText = (outcome: GameOutcome) => {
-  switch (outcome) {
-    case GameOutcome.EMPTY:
-      return "NONE";
-    case GameOutcome.SHOWDOWN:
-      return "SHOWDOWN";
-    case GameOutcome.FOLD:
-      return "FOLD";
-    case GameOutcome.TIMEOUT:
-      return "TIMEOUT";
-    case GameOutcome.CANCEL:
-      return "CANCEL";
-    case GameOutcome.RESIGN:
-      return "RESIGNATION";
+export const cardRankSymbol = (rank: number) => {
+  switch (rank) {
+    case 0:
+      return "J";
+    case 1:
+      return "Q";
+    case 2:
+      return "K";
     default:
-      return "UNKNOWN";
+      return "X";
   }
 };
 
@@ -138,117 +84,4 @@ export const playerActionNameToNum = (n: string) => {
     default:
       return -1;
   }
-};
-
-export const AllPlayerActions = [
-  PlayerAction.EMPTY,
-  PlayerAction.CHECK,
-  PlayerAction.BET,
-  PlayerAction.FOLD,
-  PlayerAction.CALL,
-] as ActionOption[];
-
-type keys = keyof typeof PlayerAction;
-export type ActionOption = (typeof PlayerAction)[keys];
-
-export const Expectation = {
-  InvalidAction: "invalid-action",
-  TakeBet: "take-bet",
-  Fold: "fold",
-  Showdown: "showdown",
-};
-
-const revertInvalidAction = {
-  revert: true,
-  expect: [Expectation.InvalidAction],
-};
-
-type ActionOutcome = {
-  revert?: boolean;
-  expect: string[];
-  branch?: PokerGameBranch;
-};
-
-export type PokerGameBranch = {
-  actionIndex: 1 | 2 | 3;
-  actions: Record<ActionOption, ActionOutcome>;
-};
-
-export const getAvailableActions = (a1: ActionOption, a2: ActionOption): ActionOption[] => {
-  if (a1 == PlayerAction.EMPTY) {
-    return AllPlayerActions.filter(key => {
-      return !ExhaustiveGameBranch.actions[key as ActionOption].revert;
-    });
-  }
-  if (a2 == PlayerAction.EMPTY) {
-    return AllPlayerActions.filter(key => {
-      const leaf = ExhaustiveGameBranch.actions[a1].branch?.actions[key];
-      return leaf != null && !leaf.revert;
-    });
-  }
-  return AllPlayerActions.filter(key => {
-    const leaf = ExhaustiveGameBranch.actions[a1].branch?.actions[a2].branch?.actions[key];
-    return leaf != null && !leaf.revert;
-  });
-};
-
-export const ExhaustiveGameBranch: PokerGameBranch = {
-  // P1
-  actionIndex: 1,
-  actions: {
-    [PlayerAction.EMPTY]: revertInvalidAction,
-    [PlayerAction.CHECK]: {
-      expect: [],
-      branch: {
-        // P2
-        actionIndex: 2,
-        actions: {
-          [PlayerAction.EMPTY]: revertInvalidAction,
-          [PlayerAction.CHECK]: {
-            expect: [Expectation.Showdown],
-          },
-          [PlayerAction.BET]: {
-            expect: [Expectation.TakeBet],
-            branch: {
-              // P1
-              actionIndex: 3,
-              actions: {
-                [PlayerAction.EMPTY]: revertInvalidAction,
-                [PlayerAction.CHECK]: revertInvalidAction,
-                [PlayerAction.BET]: revertInvalidAction,
-                [PlayerAction.FOLD]: {
-                  expect: [Expectation.Fold],
-                },
-                [PlayerAction.CALL]: {
-                  expect: [Expectation.TakeBet, Expectation.Showdown],
-                },
-              },
-            },
-          },
-          [PlayerAction.FOLD]: revertInvalidAction,
-          [PlayerAction.CALL]: revertInvalidAction,
-        },
-      },
-    },
-    [PlayerAction.BET]: {
-      expect: [Expectation.TakeBet],
-      branch: {
-        // P2
-        actionIndex: 2,
-        actions: {
-          [PlayerAction.EMPTY]: revertInvalidAction,
-          [PlayerAction.CHECK]: revertInvalidAction,
-          [PlayerAction.BET]: revertInvalidAction,
-          [PlayerAction.FOLD]: {
-            expect: [Expectation.Fold],
-          },
-          [PlayerAction.CALL]: {
-            expect: [Expectation.TakeBet, Expectation.Showdown],
-          },
-        },
-      },
-    },
-    [PlayerAction.FOLD]: revertInvalidAction,
-    [PlayerAction.CALL]: revertInvalidAction,
-  },
 };

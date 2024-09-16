@@ -557,6 +557,8 @@ contract FHEKuhnPoker is Permissioned {
 
 	struct UserGameState {
 		Game game;
+		uint256 selfChips;
+		uint256 opponentChips;
 		uint256 activeGid;
 		uint256 rematchGid;
 		uint256 selfGid;
@@ -577,6 +579,7 @@ contract FHEKuhnPoker is Permissioned {
 		address _user
 	) external view returns (UserGameState memory gameState) {
 		gameState.selfGid = userActiveGame[_user];
+		gameState.selfChips = chips[_user];
 
 		// User has no active game
 		if (gameState.selfGid == 0) {
@@ -590,9 +593,11 @@ contract FHEKuhnPoker is Permissioned {
 		if (game.state.accepted) {
 			gameState.activeGid = gameState.selfGid;
 			gameState.rematchGid = game.outcome.rematchGid;
-			gameState.opponentGid = userActiveGame[
-				_getOpponentAddress(gameState.activeGid, _user)
-			];
+
+			address opponent = _getOpponentAddress(gameState.activeGid, _user);
+			gameState.opponentGid = userActiveGame[opponent];
+			gameState.opponentChips = chips[opponent];
+
 			gameState.game = games[gameState.activeGid];
 			return gameState;
 		}
@@ -601,9 +606,11 @@ contract FHEKuhnPoker is Permissioned {
 		if (game.rematchingGid != 0) {
 			gameState.activeGid = game.rematchingGid;
 			gameState.rematchGid = gameState.selfGid;
-			gameState.opponentGid = userActiveGame[
-				_getOpponentAddress(gameState.activeGid, _user)
-			];
+
+			address opponent = _getOpponentAddress(gameState.activeGid, _user);
+			gameState.opponentGid = userActiveGame[opponent];
+			gameState.opponentChips = chips[opponent];
+
 			gameState.game = games[gameState.activeGid];
 			return gameState;
 		}

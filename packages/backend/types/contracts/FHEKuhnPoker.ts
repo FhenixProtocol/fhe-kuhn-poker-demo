@@ -127,6 +127,8 @@ export type SealedUintStructOutput = [data: string, utype: bigint] & {
 export declare namespace FHEKuhnPoker {
   export type UserGameStateStruct = {
     game: GameStruct;
+    selfChips: BigNumberish;
+    opponentChips: BigNumberish;
     activeGid: BigNumberish;
     rematchGid: BigNumberish;
     selfGid: BigNumberish;
@@ -135,12 +137,16 @@ export declare namespace FHEKuhnPoker {
 
   export type UserGameStateStructOutput = [
     game: GameStructOutput,
+    selfChips: bigint,
+    opponentChips: bigint,
     activeGid: bigint,
     rematchGid: bigint,
     selfGid: bigint,
     opponentGid: bigint
   ] & {
     game: GameStructOutput;
+    selfChips: bigint;
+    opponentChips: bigint;
     activeGid: bigint;
     rematchGid: bigint;
     selfGid: bigint;

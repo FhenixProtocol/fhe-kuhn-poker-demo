@@ -26,9 +26,7 @@ export const useFhenixState = create<FhenixState>()(
 );
 
 export const initFhenixClient = async (account: `0x${string}` | undefined) => {
-  console.log("Init fhenix client for ", account);
   if (account === useFhenixState.getState().initializedAccount && useFhenixState.getState().provider != null) return;
-  console.log("step 1");
 
   // Initialize the provider.
   // @todo: Find a way not to use ethers.BrowserProvider because we already have viem and wagmi here.
