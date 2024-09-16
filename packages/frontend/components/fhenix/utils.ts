@@ -1,11 +1,13 @@
+import { ZeroAddress } from "ethers";
 import { AbiFunctionReturnType, ContractAbi } from "~~/utils/scaffold-eth/contract";
 
 export enum GameOutcome {
   EMPTY,
-  A_BY_SHOWDOWN,
-  B_BY_SHOWDOWN,
-  A_BY_FOLD,
-  B_BY_FOLD,
+  SHOWDOWN,
+  FOLD,
+  TIMEOUT,
+  CANCEL,
+  RESIGN,
 }
 
 export enum PlayerAction {
@@ -17,10 +19,39 @@ export enum PlayerAction {
 }
 
 export type GameInfo = AbiFunctionReturnType<ContractAbi<"FHEKuhnPoker">, "getGame">;
+export type GidsState = AbiFunctionReturnType<ContractAbi<"FHEKuhnPoker">, "getUserGameState">;
 
-export const getGameActionIndex = (game: GameInfo) => {
-  if (game.action1 === PlayerAction.EMPTY) return 1;
-  if (game.action2 === PlayerAction.EMPTY) return 2;
+export const EmptyGameInfo: GameInfo = {
+  gid: 0n,
+  rematchingGid: 0n,
+  playerA: ZeroAddress,
+  playerB: ZeroAddress,
+  state: {
+    accepted: false,
+    eCardA: 0n,
+    eCardB: 0n,
+    pot: 0,
+    startingPlayer: ZeroAddress,
+    activePlayer: ZeroAddress,
+    timeout: 0n,
+    action1: 0,
+    action2: 0,
+    action3: 0,
+  },
+  outcome: {
+    gid: 0n,
+    cardA: 0,
+    cardB: 0,
+    winner: ZeroAddress,
+    outcome: GameOutcome.EMPTY,
+    rematchGid: 0n,
+  },
+};
+
+export const getGameActionIndex = (game?: GameInfo) => {
+  if (game == null) return 1;
+  if (game.state.action1 === PlayerAction.EMPTY) return 1;
+  if (game.state.action2 === PlayerAction.EMPTY) return 2;
   return 3;
 };
 
@@ -28,14 +59,16 @@ export const outcomeToText = (outcome: GameOutcome) => {
   switch (outcome) {
     case GameOutcome.EMPTY:
       return "NONE";
-    case GameOutcome.A_BY_SHOWDOWN:
-      return "P1 WON BY SHOWDOWN";
-    case GameOutcome.B_BY_SHOWDOWN:
-      return "P2 WON BY SHOWDOWN";
-    case GameOutcome.A_BY_FOLD:
-      return "P1 WON BY FOLD";
-    case GameOutcome.B_BY_FOLD:
-      return "P2 WON BY FOLD";
+    case GameOutcome.SHOWDOWN:
+      return "SHOWDOWN";
+    case GameOutcome.FOLD:
+      return "FOLD";
+    case GameOutcome.TIMEOUT:
+      return "TIMEOUT";
+    case GameOutcome.CANCEL:
+      return "CANCEL";
+    case GameOutcome.RESIGN:
+      return "RESIGNATION";
     default:
       return "UNKNOWN";
   }
@@ -43,11 +76,11 @@ export const outcomeToText = (outcome: GameOutcome) => {
 
 export const cardSymbol = (card?: number) => {
   switch (card) {
-    case 1:
+    case 0:
       return { symbol: "J", hidden: false } as const;
-    case 2:
+    case 1:
       return { symbol: "Q", hidden: false } as const;
-    case 3:
+    case 2:
       return { symbol: "K", hidden: false } as const;
     default:
     case undefined:

@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   412346: {
     Counter: {
-      address: "0x5B0ABc8c4e9Cd491C2A204bf8581Da3Ad9284ff9",
+      address: "0xbeb4eF1fcEa618C6ca38e3828B00f8D481EC2CC2",
       abi: [
         {
           inputs: [],
@@ -247,7 +247,7 @@ const deployedContracts = {
       },
     },
     FHEKuhnPoker: {
-      address: "0x7C1BE03Aa7489C4D7d4cc295De13b8c4BDD6b61b",
+      address: "0xB170fC5BAC4a87A63fC84653Ee7e0db65CC62f96",
       abi: [
         {
           inputs: [],
@@ -298,7 +298,17 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "GameNotEnded",
+          type: "error",
+        },
+        {
+          inputs: [],
           name: "GameNotStarted",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "GameStarted",
           type: "error",
         },
         {
@@ -329,6 +339,11 @@ const deployedContracts = {
         {
           inputs: [],
           name: "NotEnoughChips",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotInGame",
           type: "error",
         },
         {
@@ -642,6 +657,13 @@ const deployedContracts = {
           type: "event",
         },
         {
+          inputs: [],
+          name: "cancelSearch",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -717,19 +739,6 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "_gid",
-              type: "uint256",
-            },
-          ],
-          name: "exitGame",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
           inputs: [],
           name: "findGame",
           outputs: [],
@@ -787,6 +796,11 @@ const deployedContracts = {
                   internalType: "uint8",
                   name: "pot",
                   type: "uint8",
+                },
+                {
+                  internalType: "address",
+                  name: "startingPlayer",
+                  type: "address",
                 },
                 {
                   internalType: "address",
@@ -912,6 +926,11 @@ const deployedContracts = {
                       internalType: "uint8",
                       name: "pot",
                       type: "uint8",
+                    },
+                    {
+                      internalType: "address",
+                      name: "startingPlayer",
+                      type: "address",
                     },
                     {
                       internalType: "address",
@@ -1098,6 +1117,11 @@ const deployedContracts = {
                     },
                     {
                       internalType: "address",
+                      name: "startingPlayer",
+                      type: "address",
+                    },
+                    {
+                      internalType: "address",
                       name: "activePlayer",
                       type: "address",
                     },
@@ -1183,14 +1207,152 @@ const deployedContracts = {
           name: "getUserGameState",
           outputs: [
             {
-              internalType: "uint256",
-              name: "displayGid",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "rematchGid",
-              type: "uint256",
+              components: [
+                {
+                  components: [
+                    {
+                      internalType: "uint256",
+                      name: "gid",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "uint256",
+                      name: "rematchingGid",
+                      type: "uint256",
+                    },
+                    {
+                      internalType: "address",
+                      name: "playerA",
+                      type: "address",
+                    },
+                    {
+                      internalType: "address",
+                      name: "playerB",
+                      type: "address",
+                    },
+                    {
+                      components: [
+                        {
+                          internalType: "bool",
+                          name: "accepted",
+                          type: "bool",
+                        },
+                        {
+                          internalType: "euint8",
+                          name: "eCardA",
+                          type: "uint256",
+                        },
+                        {
+                          internalType: "euint8",
+                          name: "eCardB",
+                          type: "uint256",
+                        },
+                        {
+                          internalType: "uint8",
+                          name: "pot",
+                          type: "uint8",
+                        },
+                        {
+                          internalType: "address",
+                          name: "startingPlayer",
+                          type: "address",
+                        },
+                        {
+                          internalType: "address",
+                          name: "activePlayer",
+                          type: "address",
+                        },
+                        {
+                          internalType: "uint64",
+                          name: "timeout",
+                          type: "uint64",
+                        },
+                        {
+                          internalType: "enum Action",
+                          name: "action1",
+                          type: "uint8",
+                        },
+                        {
+                          internalType: "enum Action",
+                          name: "action2",
+                          type: "uint8",
+                        },
+                        {
+                          internalType: "enum Action",
+                          name: "action3",
+                          type: "uint8",
+                        },
+                      ],
+                      internalType: "struct GameState",
+                      name: "state",
+                      type: "tuple",
+                    },
+                    {
+                      components: [
+                        {
+                          internalType: "uint256",
+                          name: "gid",
+                          type: "uint256",
+                        },
+                        {
+                          internalType: "uint8",
+                          name: "cardA",
+                          type: "uint8",
+                        },
+                        {
+                          internalType: "uint8",
+                          name: "cardB",
+                          type: "uint8",
+                        },
+                        {
+                          internalType: "address",
+                          name: "winner",
+                          type: "address",
+                        },
+                        {
+                          internalType: "enum Outcome",
+                          name: "outcome",
+                          type: "uint8",
+                        },
+                        {
+                          internalType: "uint256",
+                          name: "rematchGid",
+                          type: "uint256",
+                        },
+                      ],
+                      internalType: "struct GameOutcome",
+                      name: "outcome",
+                      type: "tuple",
+                    },
+                  ],
+                  internalType: "struct Game",
+                  name: "game",
+                  type: "tuple",
+                },
+                {
+                  internalType: "uint256",
+                  name: "activeGid",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "rematchGid",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "selfGid",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "opponentGid",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct FHEKuhnPoker.UserGameState",
+              name: "gameState",
+              type: "tuple",
             },
           ],
           stateMutability: "view",
@@ -1249,6 +1411,11 @@ const deployedContracts = {
                       internalType: "uint8",
                       name: "pot",
                       type: "uint8",
+                    },
+                    {
+                      internalType: "address",
+                      name: "startingPlayer",
+                      type: "address",
                     },
                     {
                       internalType: "address",
@@ -1355,11 +1522,6 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "uint256",
-              name: "_gid",
-              type: "uint256",
-            },
-            {
               internalType: "enum Action",
               name: "action",
               type: "uint8",
@@ -1371,26 +1533,14 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "_gid",
-              type: "uint256",
-            },
-          ],
+          inputs: [],
           name: "rematch",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
         },
         {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "_gid",
-              type: "uint256",
-            },
-          ],
+          inputs: [],
           name: "resign",
           outputs: [],
           stateMutability: "nonpayable",
@@ -1407,6 +1557,13 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "timeoutOpponent",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {

@@ -41,6 +41,7 @@ struct GameState {
 	euint8 eCardB;
 	//
 	uint8 pot;
+	address startingPlayer;
 	address activePlayer;
 	uint64 timeout;
 	//
@@ -110,9 +111,11 @@ contract FHEKuhnPoker is Permissioned {
 	error InvalidGame();
 	error NotEnoughChips();
 	error InvalidPlayerB();
+	error NotInGame();
 	error GameStarted();
 	error GameNotStarted();
 	error GameEnded();
+	error GameNotEnded();
 	error OpponentHasLeft();
 	error RematchCancelled();
 	error NotPlayerInGame();
@@ -125,15 +128,13 @@ contract FHEKuhnPoker is Permissioned {
 
 	// MODIFIERS
 
-	modifier validGame(uint256 _gid) {
-		if (_gid > gid) revert InvalidGame();
+	modifier validUserGame() {
+		if (userActiveGame[msg.sender] == 0) revert NotInGame();
 		_;
 	}
-	modifier validPlayer(uint256 _gid) {
-		if (
-			msg.sender != games[_gid].playerA &&
-			msg.sender != games[_gid].playerB
-		) revert NotPlayerInGame();
+
+	modifier validGame(uint256 _gid) {
+		if (_gid > gid) revert InvalidGame();
 		_;
 	}
 
@@ -147,59 +148,52 @@ contract FHEKuhnPoker is Permissioned {
 	// GAME MANAGEMENT
 
 	function findGame() public {
-		_cancelRematchRequestIfOpen(userActiveGame[msg.sender]);
-		_resignGameIfActive(userActiveGame[msg.sender]);
+		if (userActiveGame[msg.sender] != 0) {
+			_cancelRematchRequestIfOpen(games[userActiveGame[msg.sender]]);
+			_resignGameIfActive(games[userActiveGame[msg.sender]]);
+		}
 
 		if (openGameId == 0) {
 			_createOpenGame();
 		} else {
-			_joinOpenGame(openGameId);
+			_joinOpenGame(games[openGameId]);
 		}
 	}
 
-	function rematch(uint256 _gid) public validGame(_gid) validPlayer(_gid) {
-		Game storage game = games[_gid];
+	function rematch() public validUserGame {
+		Game storage game = games[userActiveGame[msg.sender]];
 
-		address opponent = msg.sender == game.playerA
-			? game.playerB
-			: game.playerA;
+		if (game.outcome.outcome == Outcome.EMPTY) revert GameNotEnded();
+
+		address opponent = _getOpponentAddress(game.gid, msg.sender);
 
 		// Create a rematch if it doesn't exist
 		if (game.outcome.rematchGid == 0) {
 			// Revert if opponent has already started a new game
-			if (userActiveGame[opponent] != _gid) revert OpponentHasLeft();
+			if (userActiveGame[opponent] != game.gid) revert OpponentHasLeft();
 
-			game.outcome.rematchGid = _createRematch(_gid, opponent);
+			game.outcome.rematchGid = _createRematch(game.gid, opponent);
 			return;
 		}
 
-		Game memory rematchGame = games[game.outcome.rematchGid];
-
-		if (msg.sender == rematchGame.playerA) revert AlreadyRequestedRematch();
-		if (rematchGame.state.accepted) revert AlreadyAcceptedRematch();
+		Game storage rematchGame = games[game.outcome.rematchGid];
 
 		if (rematchGame.outcome.outcome == Outcome.CANCEL)
 			revert RematchCancelled();
 
-		_acceptRematch(game.outcome.rematchGid);
+		_acceptRematch(rematchGame);
 	}
 
-	function cancelSearch(
-		uint256 _gid
-	) public validGame(_gid) validPlayer(_gid) {
-		Game storage game = games[_gid];
+	function cancelSearch() public validUserGame {
+		Game storage game = games[userActiveGame[msg.sender]];
 
-		// Can only cancel search if playerA (created the game) and not accepted
 		if (game.state.accepted) revert GameStarted();
-		if (msg.sender != game.playerA) revert NotPlayerInGame();
 
-		_cancelGame(_gid);
+		_cancelGame(game);
 	}
 
-	function timeoutOpponent(
-		uint256 _gid
-	) public validGame(_gid) validPlayer(_gid) {
-		Game storage game = games[_gid];
+	function timeoutOpponent() public validUserGame {
+		Game storage game = games[userActiveGame[msg.sender]];
 
 		if (!game.state.accepted) revert GameNotStarted();
 		if (game.outcome.outcome != Outcome.EMPTY) revert GameEnded();
@@ -214,25 +208,24 @@ contract FHEKuhnPoker is Permissioned {
 		emit WonByTimeout(game.outcome.winner, game.gid, game.state.pot);
 	}
 
-	function resign(uint256 _gid) public validGame(_gid) validPlayer(_gid) {
-		if (games[_gid].outcome.outcome != Outcome.EMPTY) revert GameEnded();
-		if (!games[_gid].state.accepted) revert GameNotStarted();
+	function resign() public validUserGame {
+		Game storage game = games[userActiveGame[msg.sender]];
 
-		_resign(_gid);
+		if (game.outcome.outcome != Outcome.EMPTY) revert GameEnded();
+		if (!game.state.accepted) revert GameNotStarted();
+
+		_resign(game);
 	}
 
-	function _resignGameIfActive(uint256 _gid) internal {
-		if (_gid == 0) return;
-		if (!games[_gid].state.accepted) return;
-		if (games[_gid].outcome.outcome != Outcome.EMPTY) return;
+	function _resignGameIfActive(Game storage game) internal {
+		if (!game.state.accepted) return;
+		if (game.outcome.outcome != Outcome.EMPTY) return;
 
 		// Game is active, resign from it
-		_resign(_gid);
+		_resign(game);
 	}
 
-	function _resign(uint256 _gid) internal {
-		Game storage game = games[_gid];
-
+	function _resign(Game storage game) internal {
 		game.state.activePlayer = address(0);
 		game.outcome.outcome = Outcome.RESIGN;
 		game.outcome.winner = game.playerA == msg.sender
@@ -282,35 +275,33 @@ contract FHEKuhnPoker is Permissioned {
 		return game.gid;
 	}
 
-	function _joinOpenGame(uint256 _gid) internal {
-		if (games[_gid].playerA == msg.sender) revert InvalidPlayerB();
-		_joinGameInner(_gid);
+	function _joinOpenGame(Game storage game) internal {
+		if (game.playerA == msg.sender) revert InvalidPlayerB();
+		_joinGameInner(game);
 
 		// Add to user games
 		// Remove as open game
-		userGames[msg.sender].add(_gid);
+		userGames[msg.sender].add(game.gid);
 		openGameId = 0;
-		userActiveGame[msg.sender] = _gid;
-		_addGameToPair(_gid);
+		userActiveGame[msg.sender] = game.gid;
+		_addGameToPair(game.gid);
 
-		emit GameJoined(msg.sender, _gid);
+		emit GameJoined(msg.sender, game.gid);
 	}
 
-	function _acceptRematch(uint256 _gid) internal {
-		_joinGameInner(_gid);
+	function _acceptRematch(Game storage rematchGame) internal {
+		_joinGameInner(rematchGame);
 
 		// Add game to both users (not done during create step for rematches)
-		userGames[games[_gid].playerA].add(_gid);
-		userGames[games[_gid].playerB].add(_gid);
-		userActiveGame[msg.sender] = _gid;
-		_addGameToPair(_gid);
+		userGames[rematchGame.playerA].add(rematchGame.gid);
+		userGames[rematchGame.playerB].add(rematchGame.gid);
+		userActiveGame[msg.sender] = rematchGame.gid;
+		_addGameToPair(rematchGame.gid);
 
-		emit RematchAccepted(msg.sender, _gid);
+		emit RematchAccepted(msg.sender, rematchGame.gid);
 	}
 
-	function _joinGameInner(uint256 _gid) internal {
-		Game storage game = games[_gid];
-
+	function _joinGameInner(Game storage game) internal {
 		// Take ante from player
 		_takeChip(game);
 
@@ -322,9 +313,10 @@ contract FHEKuhnPoker is Permissioned {
 		// Random value between 0 and 1
 		// FHE randomness is leveraged, but it does not need to remain encrypted
 		uint8 startingPlayer = FHE.decrypt(FHE.randomEuint8()) % 2;
-		game.state.activePlayer = startingPlayer == 0
+		game.state.startingPlayer = startingPlayer == 0
 			? game.playerA
 			: game.playerB;
+		game.state.activePlayer = game.state.startingPlayer;
 
 		// Random card selection:
 		// 1. A random number is generated
@@ -339,28 +331,24 @@ contract FHEKuhnPoker is Permissioned {
 		game.state.eCardB = rand.add(randOffset).rem(euint3);
 	}
 
-	function _cancelRematchRequestIfOpen(uint256 _gid) internal {
-		if (_gid == 0) return;
-
-		if (games[_gid].rematchingGid == 0) return;
-		if (games[_gid].state.accepted) return;
+	function _cancelRematchRequestIfOpen(Game storage game) internal {
+		if (game.rematchingGid == 0) return;
+		if (game.state.accepted) return;
 
 		// Rematch request is open, cancel it
-		_cancelGame(_gid);
+		_cancelGame(game);
 	}
 
-	function _cancelGame(uint256 _gid) internal {
-		Game storage game = games[_gid];
-
+	function _cancelGame(Game storage game) internal {
 		game.outcome.outcome = Outcome.CANCEL;
 		chips[msg.sender] += game.state.pot;
-		userGames[msg.sender].remove(_gid);
+		userGames[msg.sender].remove(game.gid);
 		userActiveGame[msg.sender] = 0;
 
 		// If cancelling game is the open game, remove it
 		if (game.gid == openGameId) openGameId = 0;
 
-		emit GameCancelled(msg.sender, _gid);
+		emit GameCancelled(msg.sender, game.gid);
 	}
 
 	function _sortPlayers(
@@ -484,17 +472,14 @@ contract FHEKuhnPoker is Permissioned {
 		}
 	}
 
-	function performAction(
-		uint256 _gid,
-		Action action
-	) public validGame(_gid) validPlayer(_gid) {
-		Game storage game = games[_gid];
+	function performAction(Action action) public validUserGame {
+		Game storage game = games[userActiveGame[msg.sender]];
 
 		if (!game.state.accepted) revert GameNotStarted();
 		if (game.outcome.outcome != Outcome.EMPTY) revert GameEnded();
 		if (msg.sender != game.state.activePlayer) revert NotYourTurn();
 
-		emit PerformedGameAction(msg.sender, _gid, action);
+		emit PerformedGameAction(msg.sender, game.gid, action);
 
 		if (game.state.action1 == Action.EMPTY) {
 			handle_Action(game, action);
@@ -570,23 +555,60 @@ contract FHEKuhnPoker is Permissioned {
 		}
 	}
 
+	struct UserGameState {
+		Game game;
+		uint256 activeGid;
+		uint256 rematchGid;
+		uint256 selfGid;
+		uint256 opponentGid;
+	}
+
+	function _getOpponentAddress(
+		uint256 _gid,
+		address _user
+	) internal view returns (address) {
+		return
+			games[_gid].playerA == _user
+				? games[_gid].playerB
+				: games[_gid].playerA;
+	}
+
 	function getUserGameState(
 		address _user
-	) external view returns (uint256 displayGid, uint256 rematchGid) {
-		uint256 activeGid = userActiveGame[_user];
+	) external view returns (UserGameState memory gameState) {
+		gameState.selfGid = userActiveGame[_user];
 
 		// User has no active game
-		if (activeGid == 0) {
-			return (0, 0);
+		if (gameState.selfGid == 0) {
+			return gameState;
 		}
 
-		if (games[activeGid].state.accepted) {
-			return (activeGid, 0);
-		} else {
-			if (games[activeGid].rematchingGid != 0) {
-				return (games[activeGid].rematchingGid, activeGid);
-			}
-			return (activeGid, 0);
+		Game memory game = games[gameState.selfGid];
+
+		// If current game is active
+		// (Opponent may have left, or may have requested a rematch)
+		if (game.state.accepted) {
+			gameState.activeGid = gameState.selfGid;
+			gameState.rematchGid = game.outcome.rematchGid;
+			gameState.opponentGid = userActiveGame[
+				_getOpponentAddress(gameState.activeGid, _user)
+			];
+			gameState.game = games[gameState.activeGid];
+			return gameState;
 		}
+
+		// If user requesting a rematch
+		if (game.rematchingGid != 0) {
+			gameState.activeGid = game.rematchingGid;
+			gameState.rematchGid = gameState.selfGid;
+			gameState.opponentGid = userActiveGame[
+				_getOpponentAddress(gameState.activeGid, _user)
+			];
+			gameState.game = games[gameState.activeGid];
+			return gameState;
+		}
+
+		// User is searching for a game
+		return gameState;
 	}
 }

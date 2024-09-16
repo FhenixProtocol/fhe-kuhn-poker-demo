@@ -28,6 +28,7 @@ export type GameStateStruct = {
   eCardA: BigNumberish;
   eCardB: BigNumberish;
   pot: BigNumberish;
+  startingPlayer: AddressLike;
   activePlayer: AddressLike;
   timeout: BigNumberish;
   action1: BigNumberish;
@@ -40,6 +41,7 @@ export type GameStateStructOutput = [
   eCardA: bigint,
   eCardB: bigint,
   pot: bigint,
+  startingPlayer: string,
   activePlayer: string,
   timeout: bigint,
   action1: bigint,
@@ -50,6 +52,7 @@ export type GameStateStructOutput = [
   eCardA: bigint;
   eCardB: bigint;
   pot: bigint;
+  startingPlayer: string;
   activePlayer: string;
   timeout: bigint;
   action1: bigint;
@@ -121,13 +124,37 @@ export type SealedUintStructOutput = [data: string, utype: bigint] & {
   utype: bigint;
 };
 
+export declare namespace FHEKuhnPoker {
+  export type UserGameStateStruct = {
+    game: GameStruct;
+    activeGid: BigNumberish;
+    rematchGid: BigNumberish;
+    selfGid: BigNumberish;
+    opponentGid: BigNumberish;
+  };
+
+  export type UserGameStateStructOutput = [
+    game: GameStructOutput,
+    activeGid: bigint,
+    rematchGid: bigint,
+    selfGid: bigint,
+    opponentGid: bigint
+  ] & {
+    game: GameStructOutput;
+    activeGid: bigint;
+    rematchGid: bigint;
+    selfGid: bigint;
+    opponentGid: bigint;
+  };
+}
+
 export interface FHEKuhnPokerInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "cancelSearch"
       | "chips"
       | "dealMeIn"
       | "eip712Domain"
-      | "exitGame"
       | "findGame"
       | "games"
       | "getGame"
@@ -141,6 +168,7 @@ export interface FHEKuhnPokerInterface extends Interface {
       | "rematch"
       | "resign"
       | "timeoutDuration"
+      | "timeoutOpponent"
       | "userActiveGame"
   ): FunctionFragment;
 
@@ -161,6 +189,10 @@ export interface FHEKuhnPokerInterface extends Interface {
       | "WonByTimeout"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "cancelSearch",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "chips", values: [AddressLike]): string;
   encodeFunctionData(
     functionFragment: "dealMeIn",
@@ -169,10 +201,6 @@ export interface FHEKuhnPokerInterface extends Interface {
   encodeFunctionData(
     functionFragment: "eip712Domain",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "exitGame",
-    values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "findGame", values?: undefined): string;
   encodeFunctionData(functionFragment: "games", values: [BigNumberish]): string;
@@ -203,18 +231,16 @@ export interface FHEKuhnPokerInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "performAction",
-    values: [BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "rematch",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(
-    functionFragment: "resign",
-    values: [BigNumberish]
-  ): string;
+  encodeFunctionData(functionFragment: "rematch", values?: undefined): string;
+  encodeFunctionData(functionFragment: "resign", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "timeoutDuration",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "timeoutOpponent",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -222,13 +248,16 @@ export interface FHEKuhnPokerInterface extends Interface {
     values: [AddressLike]
   ): string;
 
+  decodeFunctionResult(
+    functionFragment: "cancelSearch",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "chips", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "dealMeIn", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "eip712Domain",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "exitGame", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "findGame", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "games", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "getGame", data: BytesLike): Result;
@@ -258,6 +287,10 @@ export interface FHEKuhnPokerInterface extends Interface {
   decodeFunctionResult(functionFragment: "resign", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "timeoutDuration",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "timeoutOpponent",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -500,6 +533,8 @@ export interface FHEKuhnPoker extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  cancelSearch: TypedContractMethod<[], [void], "nonpayable">;
+
   chips: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
   dealMeIn: TypedContractMethod<
@@ -523,8 +558,6 @@ export interface FHEKuhnPoker extends BaseContract {
     ],
     "view"
   >;
-
-  exitGame: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
 
   findGame: TypedContractMethod<[], [void], "nonpayable">;
 
@@ -570,7 +603,7 @@ export interface FHEKuhnPoker extends BaseContract {
 
   getUserGameState: TypedContractMethod<
     [_user: AddressLike],
-    [[bigint, bigint] & { displayGid: bigint; rematchGid: bigint }],
+    [FHEKuhnPoker.UserGameStateStructOutput],
     "view"
   >;
 
@@ -585,16 +618,18 @@ export interface FHEKuhnPoker extends BaseContract {
   openGameId: TypedContractMethod<[], [bigint], "view">;
 
   performAction: TypedContractMethod<
-    [_gid: BigNumberish, action: BigNumberish],
+    [action: BigNumberish],
     [void],
     "nonpayable"
   >;
 
-  rematch: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+  rematch: TypedContractMethod<[], [void], "nonpayable">;
 
-  resign: TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+  resign: TypedContractMethod<[], [void], "nonpayable">;
 
   timeoutDuration: TypedContractMethod<[], [bigint], "view">;
+
+  timeoutOpponent: TypedContractMethod<[], [void], "nonpayable">;
 
   userActiveGame: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
@@ -602,6 +637,9 @@ export interface FHEKuhnPoker extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "cancelSearch"
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "chips"
   ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
@@ -625,9 +663,6 @@ export interface FHEKuhnPoker extends BaseContract {
     ],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "exitGame"
-  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "findGame"
   ): TypedContractMethod<[], [void], "nonpayable">;
@@ -675,7 +710,7 @@ export interface FHEKuhnPoker extends BaseContract {
     nameOrSignature: "getUserGameState"
   ): TypedContractMethod<
     [_user: AddressLike],
-    [[bigint, bigint] & { displayGid: bigint; rematchGid: bigint }],
+    [FHEKuhnPoker.UserGameStateStructOutput],
     "view"
   >;
   getFunction(
@@ -689,20 +724,19 @@ export interface FHEKuhnPoker extends BaseContract {
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "performAction"
-  ): TypedContractMethod<
-    [_gid: BigNumberish, action: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
+  ): TypedContractMethod<[action: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "rematch"
-  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "resign"
-  ): TypedContractMethod<[_gid: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "timeoutDuration"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "timeoutOpponent"
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "userActiveGame"
   ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
