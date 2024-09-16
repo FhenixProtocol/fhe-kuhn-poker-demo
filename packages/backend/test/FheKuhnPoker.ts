@@ -514,38 +514,57 @@ describe("FHEKuhnPoker", function () {
     await processBranch(ExhaustiveGameBranch);
   });
 
-  it("exiting game reversions", async () => {
+  it("cancel search reversions", async () => {
     const gid = await createGame();
-    const game = await fheKuhnPoker.getGame(gid);
 
-    // Cannot exit game that doesn't exist
-    await expect(fheKuhnPoker.connect(bob).exitGame(gid + 1)).to.be.revertedWithCustomError(
+    // Cannot cancel search of a game that doesn't exist
+    await expect(fheKuhnPoker.connect(bob).cancelSearch(gid + 1)).to.be.revertedWithCustomError(
       fheKuhnPoker,
       "InvalidGame",
     );
 
-    // Cannot exit a game you are not in
-    await expect(fheKuhnPoker.connect(signer).exitGame(gid)).to.be.revertedWithCustomError(
+    // Cannot cancel search a game you are not in
+    await expect(fheKuhnPoker.connect(signer).cancelSearch(gid)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "NotPlayerInGame",
+    );
+  });
+
+  it("timeout opponent reversions", async () => {
+    const gid = await createGame();
+    const game = await fheKuhnPoker.getGame(gid);
+
+    // Cannot timeout opponent in game that doesn't exist
+    await expect(fheKuhnPoker.connect(bob).timeoutOpponent(gid + 1)).to.be.revertedWithCustomError(
+      fheKuhnPoker,
+      "InvalidGame",
+    );
+
+    // Cannot timeout opponent in a game you are not in
+    await expect(fheKuhnPoker.connect(signer).timeoutOpponent(gid)).to.be.revertedWithCustomError(
       fheKuhnPoker,
       "NotPlayerInGame",
     );
 
-    // Cannot exit game that has ended
+    // Cannot timeout opponent in a game that has ended
     await withinSnapshot(async () => {
       await playoutGame(gid);
-      await expect(fheKuhnPoker.connect(bob).exitGame(gid)).to.be.revertedWithCustomError(fheKuhnPoker, "GameEnded");
+      await expect(fheKuhnPoker.connect(bob).timeoutOpponent(gid)).to.be.revertedWithCustomError(
+        fheKuhnPoker,
+        "GameEnded",
+      );
     });
 
-    // Cannot exit game while opponent still has time
+    // Cannot timeout opponent that still has time
     const waitingPlayer = game.state.activePlayer === bob.address ? ada : bob;
-    await expect(fheKuhnPoker.connect(waitingPlayer).exitGame(gid)).to.be.revertedWithCustomError(
+    await expect(fheKuhnPoker.connect(waitingPlayer).timeoutOpponent(gid)).to.be.revertedWithCustomError(
       fheKuhnPoker,
       "OpponentStillHasTime",
     );
 
-    // Cannot exit game if it is your turn
+    // Cannot timeout opponent on your turn
     const activePlayer = game.state.activePlayer === bob.address ? bob : ada;
-    await expect(fheKuhnPoker.connect(activePlayer).exitGame(gid)).to.be.revertedWithCustomError(
+    await expect(fheKuhnPoker.connect(activePlayer).timeoutOpponent(gid)).to.be.revertedWithCustomError(
       fheKuhnPoker,
       "ItsYourTurn",
     );
@@ -558,7 +577,7 @@ describe("FHEKuhnPoker", function () {
     const waitingPlayer = game.state.activePlayer === bob.address ? ada : bob;
 
     await withinSnapshot(async () => {
-      await expect(fheKuhnPoker.connect(waitingPlayer).exitGame(gid)).to.be.revertedWithCustomError(
+      await expect(fheKuhnPoker.connect(waitingPlayer).timeoutOpponent(gid)).to.be.revertedWithCustomError(
         fheKuhnPoker,
         "OpponentStillHasTime",
       );
@@ -567,7 +586,7 @@ describe("FHEKuhnPoker", function () {
     const waitingPlayerChipsInit = await fheKuhnPoker.chips(waitingPlayer.address);
 
     await time.increaseTo(game.state.timeout + 1n);
-    await expect(fheKuhnPoker.connect(waitingPlayer).exitGame(gid))
+    await expect(fheKuhnPoker.connect(waitingPlayer).timeoutOpponent(gid))
       .to.emit(fheKuhnPoker, "WonByTimeout")
       .withArgs(waitingPlayer.address, gid, game.state.pot);
 
@@ -597,7 +616,7 @@ describe("FHEKuhnPoker", function () {
 
     const bobChipsInit = await fheKuhnPoker.chips(bob.address);
 
-    await expect(fheKuhnPoker.connect(bob).exitGame(gid))
+    await expect(fheKuhnPoker.connect(bob).cancelSearch(gid))
       .to.emit(fheKuhnPoker, "GameCancelled")
       .withArgs(bob.address, gid);
 
@@ -645,7 +664,7 @@ describe("FHEKuhnPoker", function () {
 
     // Rematch has been cancelled
     await withinSnapshot(async () => {
-      await fheKuhnPoker.connect(bob).exitGame(rematchGid);
+      await fheKuhnPoker.connect(bob).cancelSearch(rematchGid);
       expect((await fheKuhnPoker.getGame(rematchGid)).outcome.outcome).to.eq(
         GameOutcome.CANCEL,
         "Bob cancelled the rematch",
@@ -690,8 +709,8 @@ describe("FHEKuhnPoker", function () {
     const bobActiveGame = await fheKuhnPoker.userActiveGame(bob.address);
 
     expect(originalGame.outcome.rematchGid).to.eq(rematchGame.gid, "Rematch GID set correctly");
+    expect(rematchGame.rematchingGid).to.eq(originalGame.gid, "Rematching from previous game gid");
 
-    expect(rematchGame.isRematch).to.eq(true, "Marked as rematch");
     expect(rematchGame.playerA).to.eq(bob.address, "Bob rematched, so bob is playerA");
     expect(rematchGame.playerB).to.eq(ada.address, "Ada is remaining player from original game, so ada is playerB");
 
@@ -711,13 +730,13 @@ describe("FHEKuhnPoker", function () {
     await fheKuhnPoker.connect(bob).rematch(gid);
 
     // Ada cannot cancel bobs rematch
-    await expect(fheKuhnPoker.connect(ada).exitGame(rematchGid)).to.be.revertedWithCustomError(
+    await expect(fheKuhnPoker.connect(ada).cancelSearch(rematchGid)).to.be.revertedWithCustomError(
       fheKuhnPoker,
       "NotPlayerInGame",
     );
 
     // Bob can cancel his own rematch
-    await expect(fheKuhnPoker.connect(bob).exitGame(rematchGid))
+    await expect(fheKuhnPoker.connect(bob).cancelSearch(rematchGid))
       .to.emit(fheKuhnPoker, "GameCancelled")
       .withArgs(bob.address, rematchGid);
   });

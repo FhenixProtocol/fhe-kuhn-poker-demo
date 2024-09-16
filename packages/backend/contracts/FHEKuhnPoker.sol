@@ -110,6 +110,7 @@ contract FHEKuhnPoker is Permissioned {
 	error InvalidGame();
 	error NotEnoughChips();
 	error InvalidPlayerB();
+	error GameStarted();
 	error GameNotStarted();
 	error GameEnded();
 	error OpponentHasLeft();
@@ -183,33 +184,34 @@ contract FHEKuhnPoker is Permissioned {
 		_acceptRematch(game.outcome.rematchGid);
 	}
 
-	function exitGame(uint256 _gid) public validGame(_gid) validPlayer(_gid) {
+	function cancelSearch(
+		uint256 _gid
+	) public validGame(_gid) validPlayer(_gid) {
 		Game storage game = games[_gid];
 
-		if (game.outcome.outcome != Outcome.EMPTY) revert GameEnded();
-
-		if (game.state.activePlayer == msg.sender) revert ItsYourTurn();
-
-		// Win by timeout
-		if (game.state.accepted) {
-			if (block.timestamp < game.state.timeout)
-				revert OpponentStillHasTime();
-
-			game.outcome.outcome = Outcome.TIMEOUT;
-			game.outcome.winner = msg.sender;
-			chips[game.outcome.winner] += game.state.pot;
-
-			emit WonByTimeout(game.outcome.winner, game.gid, game.state.pot);
-			return;
-		}
-
-		// Cancelling game
-
-		// Only player A can cancel a rematch that hasn't been accepted
-		if (game.rematchingGid != 0 && msg.sender != game.playerA)
-			revert NotPlayerInGame();
+		// Can only cancel search if playerA (created the game) and not accepted
+		if (game.state.accepted) revert GameStarted();
+		if (msg.sender != game.playerA) revert NotPlayerInGame();
 
 		_cancelGame(_gid);
+	}
+
+	function timeoutOpponent(
+		uint256 _gid
+	) public validGame(_gid) validPlayer(_gid) {
+		Game storage game = games[_gid];
+
+		if (!game.state.accepted) revert GameNotStarted();
+		if (game.outcome.outcome != Outcome.EMPTY) revert GameEnded();
+		if (game.state.activePlayer == msg.sender) revert ItsYourTurn();
+		if (block.timestamp < game.state.timeout) revert OpponentStillHasTime();
+
+		game.state.activePlayer = address(0);
+		game.outcome.outcome = Outcome.TIMEOUT;
+		game.outcome.winner = msg.sender;
+		chips[game.outcome.winner] += game.state.pot;
+
+		emit WonByTimeout(game.outcome.winner, game.gid, game.state.pot);
 	}
 
 	function resign(uint256 _gid) public validGame(_gid) validPlayer(_gid) {
@@ -231,6 +233,7 @@ contract FHEKuhnPoker is Permissioned {
 	function _resign(uint256 _gid) internal {
 		Game storage game = games[_gid];
 
+		game.state.activePlayer = address(0);
 		game.outcome.outcome = Outcome.RESIGN;
 		game.outcome.winner = game.playerA == msg.sender
 			? game.playerB
