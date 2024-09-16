@@ -43,7 +43,7 @@ task("task:kuhnPokerRandomness").setAction(async function (_taskArguments: TaskA
     );
     if (availableActions.length === 0) return { player: null, action: null };
 
-    const action = availableActions[0];
+    const action = availableActions[Math.floor(Math.random() * availableActions.length)];
 
     return {
       player,
@@ -55,13 +55,18 @@ task("task:kuhnPokerRandomness").setAction(async function (_taskArguments: TaskA
     const { player, action } = await getValidGamePlayerAndAction(gid);
     console.log(player?.address, "-", action == null ? "NULL" : playerActionNumToName(action));
     if (player == null) return null;
-    await fheKuhnPoker.connect(player).performAction(action);
+    const res = await fheKuhnPoker.connect(player).performAction(action, {
+      gasLimit: "0x15de90",
+      gasPrice: "0x7270e00",
+    });
+    await res.wait(1);
   };
 
   const playoutGame = async (gid: number) => {
     while (true) {
       await playValidGameAction(gid);
       const game = await fheKuhnPoker.getGame(gid);
+      console.log("outcome", game.outcome.outcome);
       if (Number(game.outcome.outcome) !== GameOutcome.EMPTY) return;
     }
   };
@@ -108,48 +113,49 @@ task("task:kuhnPokerRandomness").setAction(async function (_taskArguments: TaskA
 
   // TESTING
 
-  let gid = 1;
-
   let res = await fheKuhnPoker.connect(bob).dealMeIn(100);
-  res.wait();
+  await res.wait(1);
   res = await fheKuhnPoker.connect(ada).dealMeIn(100);
-  res.wait();
+  await res.wait(1);
   res = await fheKuhnPoker.connect(bob).findGame();
-  res.wait();
+  await res.wait(1);
   res = await fheKuhnPoker.connect(ada).findGame();
-  res.wait();
+  await res.wait(1);
 
   for (let i = 0; i < 100; i++) {
-    console.log("Playing Game ", i);
+    const gid = Number(await fheKuhnPoker.gid());
+    console.log("Playing Game ", gid);
     await playoutGame(gid);
     const game = await fheKuhnPoker.games(gid);
-    console.log({
-      game,
+
+    if (game.state.activePlayer == bob.address) startingPlayer.A += 1;
+    else startingPlayer.B += 1;
+    startingPlayer.total += 1;
+
+    playerACards[cardToLetter(game.outcome.cardA)] += 1;
+    playerACards.total += 1;
+    playerBCards[cardToLetter(game.outcome.cardB)] += 1;
+    playerBCards.total += 1;
+
+    cardPairs[`${cardToLetter(game.outcome.cardA)}-${cardToLetter(game.outcome.cardB)}`] += 1;
+    cardPairs.total += 1;
+
+    if (game.outcome.cardA > game.outcome.cardB) wins.A += 1;
+    else wins.B += 1;
+    wins.total += 1;
+
+    console.log("PlayerA card", game.outcome.cardA, "PlayerB card", game.outcome.cardB);
+
+    res = await fheKuhnPoker.connect(bob).rematch({
+      gasLimit: "0x15de90",
+      gasPrice: "0x7270e00",
     });
-
-    // if (game.state.activePlayer == bob.address) startingPlayer.A += 1;
-    // else startingPlayer.B += 1;
-    // startingPlayer.total += 1;
-
-    // playerACards[cardToLetter(game.outcome.cardA)] += 1;
-    // playerACards.total += 1;
-    // playerBCards[cardToLetter(game.outcome.cardB)] += 1;
-    // playerBCards.total += 1;
-
-    // cardPairs[`${cardToLetter(game.outcome.cardA)}-${cardToLetter(game.outcome.cardB)}`] += 1;
-    // cardPairs.total += 1;
-
-    // if (game.outcome.cardA > game.outcome.cardB) wins.A += 1;
-    // else wins.B += 1;
-    // wins.total += 1;
-
-    // console.log("PlayerA card", game.outcome.cardA, "PlayerB card", game.outcome.cardB);
-
-    // res = await fheKuhnPoker.connect(bob).rematch();
-    // res.wait();
-    // res = await fheKuhnPoker.connect(ada).rematch();
-    // res.wait();
-    // gid += 1;
+    await res.wait(1);
+    res = await fheKuhnPoker.connect(ada).rematch({
+      gasLimit: "0x15de90",
+      gasPrice: "0x7270e00",
+    });
+    await res.wait(1);
   }
 
   console.log({
