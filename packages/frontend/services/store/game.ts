@@ -94,6 +94,8 @@ const AllPlayerActions = [
   PlayerAction.CALL,
 ] as ActionOption[];
 
+const isBettingAction = (action: ActionOption) => action === PlayerAction.BET || action === PlayerAction.CALL;
+
 type keys = keyof typeof PlayerAction;
 export type ActionOption = (typeof PlayerAction)[keys];
 
@@ -252,12 +254,82 @@ export const useGameStateUpdater = () => {
   }, [address, gameState]);
 };
 
-export const useGamePot = () => {
-  return useGameState(state => state.gameState?.game?.state?.pot);
+export const useGamePotData = () => {
+  return useGameState(({ gameState, address }) => {
+    if (gameState?.game == null || address == null)
+      return { pot: 0, userChipsInPot: 0, opponentChipsInPot: 0, potOwner: "none" } as const;
+    const { game } = gameState;
+    let player1Chips = 0;
+    let player2Chips = 0;
+
+    const userStarted = address === game.state.startingPlayer;
+    if (isBettingAction(game.state.action1)) player1Chips += 1;
+    if (isBettingAction(game.state.action2)) player2Chips += 1;
+    if (isBettingAction(game.state.action3)) player1Chips += 1;
+
+    const potOwner =
+      game.outcome.winner === ZeroAddress ? "none" : game.outcome.winner === address ? "player" : "opponent";
+
+    const userAnteChips = game.gid === 0n && gameState.selfGid === 0n ? 0 : 1;
+    const opponentAnteChips = game.state.accepted ? 1 : 0;
+
+    return {
+      pot: gameState?.game?.state?.pot,
+      userChipsInPot: userAnteChips + (userStarted ? player1Chips : player2Chips),
+      opponentChipsInPot: opponentAnteChips + (userStarted ? player2Chips : player1Chips),
+      potOwner,
+    } as const;
+  });
+};
+
+const jitters = [
+  { x: 3, y: -2 },
+  { x: -4, y: 6 },
+  { x: -1, y: 5 },
+  { x: 3, y: -5 },
+  { x: -1, y: -3 },
+  { x: -2, y: -4 },
+  { x: 6, y: 5 },
+  { x: -5, y: 3 },
+];
+
+// GPT
+const fnv1aHash = (str: string): number => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24); // FNV prime: 16777619
+  }
+  return hash >>> 0;
+};
+
+// GPT
+const generateNumbersFromGID = (gid: bigint): number[] => {
+  const hash = fnv1aHash(gid.toString());
+
+  const numbers = [];
+  for (let i = 0; i < 4; i++) {
+    const num = (hash >> (i * 8)) & 0x07;
+    numbers.push(num);
+  }
+
+  return numbers;
+};
+
+export const useChipJitters = () => {
+  return useGameState(state => {
+    const gid = state.gameState?.game?.gid ?? 0n;
+    const rands = generateNumbersFromGID(gid);
+    return rands.map(rand => jitters[rand]);
+  });
 };
 
 export const useActiveGid = () => {
   return useGameState(state => state.gameState?.game?.gid);
+};
+
+export const useUserChips = () => {
+  return useGameState(({ gameState }) => gameState?.selfChips ?? 0n);
 };
 
 export const useGamePlayerCardUpdater = () => {

@@ -4,10 +4,10 @@ import { cardRankSymbol } from "./utils";
 import { KuhnCard, PopulatedKuhnCard } from "~~/services/store/game";
 
 const playingCard = tv({
-  base: "w-24 h-36 min-h-[9rem] rounded-md flex items-center justify-center m-2 relative",
+  base: "w-24 h-36 min-h-[9rem] rounded-md flex items-center justify-center relative",
   variants: {
     color: {
-      empty: "bg-gradient-to-br from-green-700 to-green-700",
+      empty: "bg-gradient-to-br from-green-700 to-green-700 opacity-50",
       gold: "bg-gradient-to-br from-amber-300 to-yellow-500 shadow-md",
       blue: "bg-gradient-to-br from-sky-600 to-blue-800 shadow-md",
       white: "bg-gradient-to-br from-slate-50 to-gray-100 shadow-md",
@@ -107,10 +107,14 @@ export const PlayingCard: React.FC<{
   children?: React.ReactNode;
 }> = ({ card, wiggle = false, gold = false, children }) => {
   return (
-    <Card wiggle={wiggle} gold={gold} card={card}>
-      {/* {ping && <div className="absolute inset-4 animate-ping bg-black rounded-2xl -z-10 blur-md opacity-40" />} */}
-      {card === "empty" ? null : card === "hidden" ? <CardBack /> : <CardFace card={card} />}
-      {children}
-    </Card>
+    <div className="w-24 min-w-[6rem] h-36 min-h-[9rem] rounded-md flex items-center justify-center m-2 relative">
+      <div className="w-40 h-40 rounded-full absolute bg-gradient-to-br from-green-700 to-green-700 opacity-50" />
+      {card != "empty" && (
+        <Card wiggle={wiggle} gold={gold} card={card}>
+          {card === "hidden" ? <CardBack /> : <CardFace card={card} />}
+          {children}
+        </Card>
+      )}
+    </div>
   );
 };

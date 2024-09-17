@@ -1,5 +1,6 @@
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { playerActionNumToName } from "./utils";
+import { useUserChips } from "~~/services/store/game";
 
 export const ActionButton: React.FC<{ disabled?: boolean; actionId: number }> = ({ actionId }) => {
   const { writeAsync, isMining } = useScaffoldContractWrite({
@@ -36,9 +37,14 @@ export const FindGameButton: React.FC<{ disabled?: boolean }> = ({ disabled }) =
     contractName: "FHEKuhnPoker",
     functionName: "findGame",
   });
+  const userChips = useUserChips();
 
   return (
-    <button disabled={disabled || isMining} className="btn btn-primary min-w-36" onClick={() => writeAsync()}>
+    <button
+      disabled={disabled || isMining || userChips === 0n}
+      className="btn btn-primary min-w-36"
+      onClick={() => writeAsync()}
+    >
       {isMining && <span className="loading loading-spinner loading-xs" />}
       Find New Game
     </button>
@@ -51,8 +57,14 @@ export const RematchButton: React.FC<{ disabled?: boolean; text: string }> = ({ 
     functionName: "rematch",
   });
 
+  const userChips = useUserChips();
+
   return (
-    <button disabled={disabled || isMining} className="btn btn-primary min-w-36" onClick={() => writeAsync()}>
+    <button
+      disabled={disabled || isMining || userChips === 0n}
+      className="btn btn-primary min-w-36"
+      onClick={() => writeAsync()}
+    >
       {isMining && <span className="loading loading-spinner loading-xs" />}
       {text}
     </button>

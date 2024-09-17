@@ -12,8 +12,9 @@ import {
   RevealCardButton,
 } from "~~/components/fhenix/PlayerSeat";
 import {
+  useChipJitters,
   useGamePlayerCardUpdater,
-  useGamePot,
+  useGamePotData,
   useGameStateUpdater,
   useGameStep,
   useInGameActionsData,
@@ -30,6 +31,7 @@ import {
   CancelSearchButton,
   DealMeInButton,
 } from "~~/components/fhenix/GameActionButtons";
+import { motion } from "framer-motion";
 
 const OpponentSeat = () => {
   const { isWinner, isLoser, isActive, address, chips, actions, card, outcome } = useOpponentData();
@@ -48,13 +50,96 @@ const OpponentSeat = () => {
   );
 };
 
-const GamePot = () => {
-  const pot = useGamePot();
+type ChipProps = {
+  position: "player" | "player-pot" | "opponent" | "opponent-pot";
+  owner: "player" | "opponent";
+};
+
+const chipPositionVariants: Record<ChipProps["position"], any> = {
+  player: { x: 65, y: 168 },
+  "player-pot": { x: 0, y: 50 },
+  opponent: { x: -65, y: -168 },
+  "opponent-pot": { x: 0, y: -50 },
+};
+
+const Chip: React.FC<{ color: string; position?: string }> = ({ color, position }) => {
+  return (
+    <div
+      className={`w-6 h-6 rounded-full bg-${color} flex items-center justify-center overflow-hidden shadow-md ${position}`}
+    >
+      <div className="absolute w-4 h-4 rounded-full bg-white flex items-center justify-center">
+        <div className={`w-3 h-3 rounded-full bg-${color}`}></div>
+      </div>
+      <div className="absolute inset-0 border-[1px] border-white rounded-full"></div>
+      <div className={`absolute inset-0 border-2 border-${color} rounded-full opacity-50`}></div>
+    </div>
+  );
+};
+
+const PlayableChip: React.FC<{
+  owner: "player" | "opponent";
+  potOwner: "none" | "player" | "opponent";
+  inPot: boolean;
+  jitter?: { x: number; y: number };
+}> = ({ owner, potOwner, inPot, jitter }) => {
+  const color = owner === "player" ? "red-500" : "blue-500";
+  const position = potOwner == "none" ? `${owner}${inPot ? "-pot" : ""}` : inPot ? potOwner : owner;
+  const jitterClassNames =
+    jitter == null ? undefined : `absolute translate-x-[${jitter.x}px] translate-y-[${jitter.y}px]`;
+  return (
+    <motion.div
+      animate={position}
+      variants={chipPositionVariants}
+      className="flex items-center justify-center absolute"
+    >
+      <Chip color={color} position={jitterClassNames} />
+    </motion.div>
+  );
+};
+
+const ChipStack: React.FC<{ owner: "player" | "opponent" }> = ({ owner }) => {
+  const color = owner === "player" ? "red-500" : "blue-500";
 
   return (
-    <div className="flex flex-col justify-center items-center text-white">
+    <div
+      className={`flex absolute ${
+        owner === "opponent"
+          ? "flex-row translate-x-[-80px] translate-y-[-168px]"
+          : "flex-row-reverse  translate-x-[80px] translate-y-[168px]"
+      } items-center justify-center gap-10`}
+    >
+      <div className="flex items-center justify-center relative">
+        <Chip color={color} position="absolute translate-y-[0px]" />
+        <Chip color={color} position="absolute translate-y-[-4px]" />
+        <Chip color={color} position="absolute translate-y-[-8px]" />
+        <Chip color={color} position="absolute translate-y-[-12px]" />
+        <Chip color={color} position="absolute translate-y-[-16px]" />
+      </div>
+      <div className="flex items-center justify-center relative">
+        <Chip color={color} position="absolute translate-x-[-6px] translate-y-[-5px]" />
+        <Chip color={color} position="absolute translate-x-[-4px] translate-y-[8px]" />
+        <Chip color={color} position="absolute translate-x-[1px] translate-y-[6px]" />
+        <Chip color={color} position="absolute translate-x-[5px] translate-y-[-4px]" />
+      </div>
+    </div>
+  );
+};
+
+const GamePot = () => {
+  const { pot, potOwner, userChipsInPot, opponentChipsInPot } = useGamePotData();
+
+  const [jitter1, jitter2, jitter3, jitter4] = useChipJitters();
+
+  return (
+    <div className="flex flex-col justify-center items-center text-white relative">
       <span className="text-sm">POT:</span>
       <code className="text-4xl">{pot ?? 0}</code>
+      <ChipStack owner={"opponent"} />
+      <ChipStack owner={"player"} />
+      <PlayableChip owner="opponent" potOwner={potOwner} inPot={opponentChipsInPot > 0} jitter={jitter1} />
+      <PlayableChip owner="opponent" potOwner={potOwner} inPot={opponentChipsInPot > 1} jitter={jitter2} />
+      <PlayableChip owner="player" potOwner={potOwner} inPot={userChipsInPot > 0} jitter={jitter3} />
+      <PlayableChip owner="player" potOwner={potOwner} inPot={userChipsInPot > 1} jitter={jitter4} />
     </div>
   );
 };
