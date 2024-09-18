@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   412346: {
     Counter: {
-      address: "0xD30C778F7Fd47CCfB93Caa589195eb288FC768c8",
+      address: "0xbeb4eF1fcEa618C6ca38e3828B00f8D481EC2CC2",
       abi: [
         {
           inputs: [],
@@ -247,7 +247,7 @@ const deployedContracts = {
       },
     },
     FHEKuhnPoker: {
-      address: "0x88d9076cBe1445ad13F63D3b44d95e07582fFe82",
+      address: "0xB170fC5BAC4a87A63fC84653Ee7e0db65CC62f96",
       abi: [
         {
           inputs: [],
