@@ -257,7 +257,7 @@ export const useGameStateUpdater = () => {
 export const useGamePotData = () => {
   return useGameState(({ gameState, address }) => {
     if (gameState?.game == null || address == null)
-      return { pot: 0, userChipsInPot: 0, opponentChipsInPot: 0, potOwner: "none" } as const;
+      return { gid: 0n, pot: 0, userChipsInPot: 0, opponentChipsInPot: 0, potOwner: "none" } as const;
     const { game } = gameState;
     let player1Chips = 0;
     let player2Chips = 0;
@@ -270,11 +270,12 @@ export const useGamePotData = () => {
     const potOwner =
       game.outcome.winner === ZeroAddress ? "none" : game.outcome.winner === address ? "player" : "opponent";
 
-    const userAnteChips = game.gid === 0n && gameState.selfGid === 0n ? 0 : 1;
+    const userAnteChips = game.state.accepted ? 1 : 0;
     const opponentAnteChips = game.state.accepted ? 1 : 0;
 
     return {
-      pot: gameState?.game?.state?.pot,
+      gid: gameState.game.gid,
+      pot: gameState.game.state.pot,
       userChipsInPot: userAnteChips + (userStarted ? player1Chips : player2Chips),
       opponentChipsInPot: opponentAnteChips + (userStarted ? player2Chips : player1Chips),
       potOwner,

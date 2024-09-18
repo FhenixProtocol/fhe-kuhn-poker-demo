@@ -55,12 +55,12 @@ type ChipProps = {
   owner: "player" | "opponent";
 };
 
-const chipPositionVariants: Record<ChipProps["position"], any> = {
-  player: { x: 65, y: 168 },
-  "player-pot": { x: 0, y: 50 },
-  opponent: { x: -65, y: -168 },
-  "opponent-pot": { x: 0, y: -50 },
-};
+const chipPositionVariants = ({ x, y }: { x: number; y: number }): Record<ChipProps["position"], any> => ({
+  player: { x: 65 + x, y: 168 + y },
+  "player-pot": { x: 0 + x, y: 50 + y },
+  opponent: { x: -65 + x, y: -168 + y },
+  "opponent-pot": { x: 0 + x, y: -50 + y },
+});
 
 const Chip: React.FC<{ color: string; position?: string }> = ({ color, position }) => {
   return (
@@ -80,19 +80,17 @@ const PlayableChip: React.FC<{
   owner: "player" | "opponent";
   potOwner: "none" | "player" | "opponent";
   inPot: boolean;
-  jitter?: { x: number; y: number };
+  jitter: { x: number; y: number };
 }> = ({ owner, potOwner, inPot, jitter }) => {
   const color = owner === "player" ? "red-500" : "blue-500";
   const position = potOwner == "none" ? `${owner}${inPot ? "-pot" : ""}` : inPot ? potOwner : owner;
-  const jitterClassNames =
-    jitter == null ? undefined : `absolute translate-x-[${jitter.x}px] translate-y-[${jitter.y}px]`;
   return (
     <motion.div
       animate={position}
-      variants={chipPositionVariants}
+      variants={chipPositionVariants(jitter)}
       className="flex items-center justify-center absolute"
     >
-      <Chip color={color} position={jitterClassNames} />
+      <Chip color={color} />
     </motion.div>
   );
 };
@@ -126,7 +124,7 @@ const ChipStack: React.FC<{ owner: "player" | "opponent" }> = ({ owner }) => {
 };
 
 const GamePot = () => {
-  const { pot, potOwner, userChipsInPot, opponentChipsInPot } = useGamePotData();
+  const { gid, pot, potOwner, userChipsInPot, opponentChipsInPot } = useGamePotData();
 
   const [jitter1, jitter2, jitter3, jitter4] = useChipJitters();
 
@@ -136,10 +134,14 @@ const GamePot = () => {
       <code className="text-4xl">{pot ?? 0}</code>
       <ChipStack owner={"opponent"} />
       <ChipStack owner={"player"} />
-      <PlayableChip owner="opponent" potOwner={potOwner} inPot={opponentChipsInPot > 0} jitter={jitter1} />
-      <PlayableChip owner="opponent" potOwner={potOwner} inPot={opponentChipsInPot > 1} jitter={jitter2} />
-      <PlayableChip owner="player" potOwner={potOwner} inPot={userChipsInPot > 0} jitter={jitter3} />
-      <PlayableChip owner="player" potOwner={potOwner} inPot={userChipsInPot > 1} jitter={jitter4} />
+      {gid !== 0n && (
+        <>
+          <PlayableChip owner="opponent" potOwner={potOwner} inPot={opponentChipsInPot > 0} jitter={jitter1} />
+          <PlayableChip owner="opponent" potOwner={potOwner} inPot={opponentChipsInPot > 1} jitter={jitter2} />
+          <PlayableChip owner="player" potOwner={potOwner} inPot={userChipsInPot > 0} jitter={jitter3} />
+          <PlayableChip owner="player" potOwner={potOwner} inPot={userChipsInPot > 1} jitter={jitter4} />
+        </>
+      )}
     </div>
   );
 };
