@@ -11,6 +11,7 @@ import {
   FhenixClientSync,
   EncryptedNumber,
 } from "fhenixjs";
+import { Primitive } from "type-fest";
 
 // Permission
 
@@ -281,9 +282,9 @@ interface DSealedOutputBase {
   data: string;
   type: "fhenix-sealed-output";
 }
-type DSealedOutputBool = SealedOutputBool & DSealedOutputBase;
-type DSealedOutputUint = SealedOutputUint & DSealedOutputBase;
-type DSealedOutputAddress = SealedOutputAddress & DSealedOutputBase;
+export type DSealedOutputBool = SealedOutputBool & DSealedOutputBase;
+export type DSealedOutputUint = SealedOutputUint & DSealedOutputBase;
+export type DSealedOutputAddress = SealedOutputAddress & DSealedOutputBase;
 
 export type DSealedOutputItem = DSealedOutputBool | DSealedOutputUint | DSealedOutputAddress;
 
@@ -293,7 +294,14 @@ export interface DSealedOutputTypes {
   address: DSealedOutputAddress;
 }
 
-type MappedOutputTypesSelector<T, E extends FhenixUtilsTypeModificationOption = "raw"> = T extends DSealedOutputBool
+type AbiOutputPrimitive = string | number | bigint | boolean | undefined;
+
+export type FhenixMappedOutputTypes<
+  T,
+  E extends FhenixUtilsTypeModificationOption = "raw",
+> = T extends AbiOutputPrimitive
+  ? T
+  : T extends DSealedOutputBool
   ? E extends "raw"
     ? SealedOutputBool
     : boolean
@@ -304,9 +312,7 @@ type MappedOutputTypesSelector<T, E extends FhenixUtilsTypeModificationOption = 
   : T extends DSealedOutputAddress
   ? E extends "raw"
     ? SealedOutputAddress
-    : string
-  : FhenixMappedOutputTypes<T, E>;
-
-export type FhenixMappedOutputTypes<T, E extends FhenixUtilsTypeModificationOption = "raw"> = {
-  [K in keyof T]: MappedOutputTypesSelector<T[K], E>;
-};
+    : `0x${string}`
+  : {
+      [K in keyof T]: FhenixMappedOutputTypes<T[K], E>;
+    };

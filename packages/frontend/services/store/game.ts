@@ -1,9 +1,8 @@
-import { ZeroAddress } from "ethers";
+import { zeroAddress } from "viem";
 import { useEffect } from "react";
 import { useInterval } from "usehooks-ts";
 import { useAccount, useNetwork } from "wagmi";
 import create from "zustand";
-import { useScaffoldContractRead } from "~~/hooks/scaffold-eth";
 import { useFhenixScaffoldContractRead } from "~~/hooks/scaffold-eth/useFhenixScaffoldContractRead";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 import { InjectFhenixPermission } from "~~/utils/fhenixUtilsTypes";
@@ -59,15 +58,15 @@ export type GidsState = AbiFunctionReturnType<ContractAbi<"FHEKuhnPoker">, "getU
 export const EmptyGameInfo: GameInfo = {
   gid: 0n,
   rematchingGid: 0n,
-  playerA: ZeroAddress,
-  playerB: ZeroAddress,
+  playerA: zeroAddress,
+  playerB: zeroAddress,
   state: {
     accepted: false,
     eCardA: 0n,
     eCardB: 0n,
     pot: 0,
-    startingPlayer: ZeroAddress,
-    activePlayer: ZeroAddress,
+    startingPlayer: zeroAddress,
+    activePlayer: zeroAddress,
     timeout: 0n,
     action1: 0,
     action2: 0,
@@ -77,7 +76,7 @@ export const EmptyGameInfo: GameInfo = {
     gid: 0n,
     cardA: 0,
     cardB: 0,
-    winner: ZeroAddress,
+    winner: zeroAddress,
     outcome: GameOutcome.EMPTY,
     rematchGid: 0n,
   },
@@ -215,7 +214,7 @@ type GameUserData = {
 };
 
 const EmptyGameUserData: GameUserData = {
-  address: ZeroAddress,
+  address: zeroAddress,
   isWinner: false,
   isLoser: false,
   isActive: false,
@@ -241,7 +240,7 @@ export const useWriteDisabled = () => {
 export const useGameStateUpdater = () => {
   const { address } = useAccount();
 
-  const { data: gameState, refetch } = useScaffoldContractRead({
+  const { data: gameState, refetch } = useFhenixScaffoldContractRead({
     contractName: "FHEKuhnPoker",
     functionName: "getUserGameState",
     args: [address],
@@ -268,7 +267,7 @@ export const useGamePotData = () => {
     if (isBettingAction(game.state.action3)) player1Chips += 1;
 
     const potOwner =
-      game.outcome.winner === ZeroAddress ? "none" : game.outcome.winner === address ? "player" : "opponent";
+      game.outcome.winner === zeroAddress ? "none" : game.outcome.winner === address ? "player" : "opponent";
 
     const userAnteChips = game.state.accepted ? 1 : 0;
     const opponentAnteChips = game.state.accepted ? 1 : 0;
@@ -361,7 +360,7 @@ export const generateSuitsFromGid = (gid: bigint): ["red" | "black", "red" | "bl
 
 export const useOpponentAddress = () => {
   return useGameState(({ gameState: game, address }) => {
-    if (address == null || game == null) return ZeroAddress;
+    if (address == null || game == null) return zeroAddress;
     return game.game.playerA === address ? game.game.playerB : game.game.playerA;
   });
 };
@@ -372,7 +371,7 @@ export const useUserPlayerData = () => {
 
     const { game, selfChips } = gameState;
 
-    const gameEnded = game.outcome.winner !== ZeroAddress;
+    const gameEnded = game.outcome.winner !== zeroAddress;
 
     return {
       address,
@@ -408,7 +407,7 @@ export const useOpponentData = () => {
 
     const { game, opponentChips } = gameState;
 
-    const gameEnded = game.outcome.winner !== ZeroAddress;
+    const gameEnded = game.outcome.winner !== zeroAddress;
     const userIsPlayerA = game.playerA === address;
     const opponent = userIsPlayerA ? game.playerB : game.playerA;
 
@@ -428,7 +427,7 @@ export const useOpponentData = () => {
       card:
         game == null || game.gid === 0n
           ? "empty"
-          : game.outcome.winner === ZeroAddress
+          : game.outcome.winner === zeroAddress
           ? "hidden"
           : {
               rank: userIsPlayerA ? game.outcome.cardB : game.outcome.cardA,
@@ -457,7 +456,7 @@ export const useInGameActionsData = () => {
     const { game } = gameState;
 
     return {
-      isPlayerActive: game.state.activePlayer !== ZeroAddress && game.state.activePlayer === address,
+      isPlayerActive: game.state.activePlayer !== zeroAddress && game.state.activePlayer === address,
       availableActions: getAvailableActions(game.state.action1, game.state.action2),
     };
   });
@@ -491,11 +490,11 @@ export const useOutOfGameActionsData = () => {
     const selfRequestedRematch = rematchExists && selfGid === rematchGid;
     const opponentRequestedRematch = rematchExists && opponentGid === rematchGid;
 
-    const playerIsWinner = game.outcome.winner !== ZeroAddress && game.outcome.winner === address;
+    const playerIsWinner = game.outcome.winner !== zeroAddress && game.outcome.winner === address;
     const outcome = game.outcome.outcome;
 
     const outcomeText =
-      game.outcome.winner === ZeroAddress
+      game.outcome.winner === zeroAddress
         ? null
         : `${playerIsWinner ? "You have" : "Your opponent has"} won ${game.state.pot} chips by ${outcomeToText(
             outcome,

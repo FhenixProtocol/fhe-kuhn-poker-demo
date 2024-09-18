@@ -25,8 +25,8 @@ import externalContractsData from "~~/contracts/externalContracts";
 import scaffoldConfig from "~~/scaffold.config";
 import {
   FhenixMappedInputTypes,
-  FhenixMappedOutputTypes,
   FhenixUtilsTypeModificationOption,
+  FhenixMappedOutputTypes,
 } from "../fhenixUtilsTypes";
 
 type AddExternalFlag<T> = {
@@ -116,27 +116,15 @@ export type AbiFunctionReturnType<
   TAbi extends Abi,
   TFunctionName extends string,
   TFhenixMapType extends FhenixUtilsTypeModificationOption = "raw",
-> = IsContractDeclarationMissing<
-  any,
-  Normalize<
+> = FhenixMappedOutputTypes<
+  IsContractDeclarationMissing<
+    any,
     AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>> extends readonly [any]
-      ? FhenixMappedOutputTypes<
-          AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>,
-          TFhenixMapType
-        >[0]
-      : FhenixMappedOutputTypes<AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>, TFhenixMapType>
-  >
+      ? AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>[0]
+      : AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>
+  >,
+  TFhenixMapType
 >;
-
-// export type AbiFunctionReturnType2<TAbi extends Abi, TFunctionName extends string> = IsContractDeclarationMissing<
-//   any,
-//   AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>> extends readonly [any]
-//     ? AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>[0]
-//     : AbiParametersToPrimitiveTypes<AbiFunctionOutputs<TAbi, TFunctionName>>
-// >;
-
-// type test = Normalize<AbiFunctionReturnType<ContractAbi<"FHEKuhnPoker">, "games">>;
-// type test2 = Normalize<AbiFunctionReturnType2<ContractAbi<"FHEKuhnPoker">, "games">>;
 
 export type AbiEventInputs<TAbi extends Abi, TEventName extends ExtractAbiEventNames<TAbi>> = ExtractAbiEvent<
   TAbi,

@@ -29,7 +29,7 @@ export const useScaffoldContractRead = <
   const { data: deployedContract } = useDeployedContractInfo(contractName);
   const { targetNetwork } = useTargetNetwork();
 
-  return useContractRead({
+  return useContractRead<ContractAbi<TContractName>, TFunctionName>({
     chainId: targetNetwork.id,
     functionName,
     address: deployedContract?.address,

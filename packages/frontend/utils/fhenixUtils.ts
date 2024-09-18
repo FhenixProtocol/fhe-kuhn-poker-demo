@@ -10,9 +10,12 @@ import {
   EncryptableUint256,
   EncryptableAddress,
   EncryptableItem,
-  DSealedOutputItem,
   TFHE_UTYPE,
   EncryptedItem,
+  DSealedOutputBool,
+  DSealedOutputUint,
+  DSealedOutputAddress,
+  FhenixMappedOutputTypes,
 } from "./fhenixUtilsTypes";
 import { toHex } from "viem";
 
@@ -315,32 +318,54 @@ export const Encryptable = {
 
 // UNSEALABLE
 
-const unsealFhenixSealedItem = (
-  item: DSealedOutputItem,
+const isFhenixSealedAddress = (item: any): item is DSealedOutputAddress => {
+  return item && typeof item === "object" && item.utype === TFHE_UTYPE.EADDRESS;
+};
+
+const isFhenixSealedBool = (item: any): item is DSealedOutputBool => {
+  return item && typeof item === "object" && item.utype === TFHE_UTYPE.EBOOL;
+};
+
+const isFhenixSealedUint = (item: any): item is DSealedOutputUint => {
+  return item && typeof item === "object" && TFHE_UTYPE.EUINT.includes(item.utype);
+};
+
+const sealedBoolItem = {
+  data: "0x000",
+  utype: 12,
+  type: "fhenix-sealed-output",
+} as DSealedOutputAddress;
+
+const test = unsealFhenixSealedItems([sealedBoolItem, sealedBoolItem], "0x...", "0x...", {} as FhenixClientSync);
+
+export function unsealFhenixSealedItems<T extends any[]>(
+  item: [...T],
   contractAddress: `0x${string}`,
   account: `0x${string}`,
   fhenixClient: FhenixClientSync,
-): any => {
-  const unsealedRaw = fhenixClient.unseal(contractAddress, item.data, account);
-  if (item.utype === TFHE_UTYPE.EBOOL) return unsealedRaw === 1n ? true : false;
-  if (item.utype === TFHE_UTYPE.EADDRESS) return unsealedRaw;
-  return unsealedRaw; // TFHE_UTYPE.UINT
-};
-
-const isFhenixSealedItem = (item: any): item is DSealedOutputItem => {
-  return item && typeof item === "object" && TFHE_UTYPE.ALL.includes(item.utype);
-};
-
-export const unsealFhenixSealedItems = (
-  item: any,
-  contractAddress: `0x${string}` | undefined,
-  account: `0x${string}` | undefined,
-  fhenixClient: FhenixClientSync | undefined,
-): any => {
-  if (contractAddress == null || account == null || fhenixClient == null) return undefined;
-
-  if (isFhenixSealedItem(item)) {
-    return unsealFhenixSealedItem(item, contractAddress, account, fhenixClient);
+): [...FhenixMappedOutputTypes<T, "fhenix-utils-modified">];
+export function unsealFhenixSealedItems<T>(
+  item: T,
+  contractAddress: `0x${string}`,
+  account: `0x${string}`,
+  fhenixClient: FhenixClientSync,
+): FhenixMappedOutputTypes<T, "fhenix-utils-modified">;
+export function unsealFhenixSealedItems<T>(
+  item: T,
+  contractAddress: `0x${string}`,
+  account: `0x${string}`,
+  fhenixClient: FhenixClientSync,
+) {
+  if (isFhenixSealedAddress(item)) {
+    // return fhenixClient.unseal(contractAddress, item.data, account)
+    return `0xFILL_ME_OUT_IN_UNSEAL_ITEM` as string;
+  }
+  if (isFhenixSealedUint(item)) {
+    return fhenixClient.unseal(contractAddress, item.data, account);
+  }
+  if (isFhenixSealedBool(item)) {
+    const unsealed = fhenixClient.unseal(contractAddress, item.data, account);
+    return unsealed === 1n;
   }
 
   if (typeof item === "object" && item !== null) {
@@ -360,4 +385,4 @@ export const unsealFhenixSealedItems = (
   }
 
   return item;
-};
+}

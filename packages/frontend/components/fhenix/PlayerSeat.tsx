@@ -1,5 +1,6 @@
 import { EyeIcon } from "@heroicons/react/24/outline";
-import { ZeroAddress } from "ethers";
+import { zeroAddress } from "viem";
+
 import { AnimatePresence, motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
@@ -52,7 +53,7 @@ const seatVariants = tv({
 });
 
 export const PlayerIdentifier: React.FC<{ address?: string }> = ({ address }) => {
-  return <>{ellipseAddress(address ?? ZeroAddress)}</>;
+  return <>{ellipseAddress(address ?? zeroAddress)}</>;
 };
 
 export const PlayerChips: React.FC<{ chips?: bigint }> = ({ chips }) => {

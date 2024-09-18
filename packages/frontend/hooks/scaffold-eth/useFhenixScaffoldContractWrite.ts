@@ -11,7 +11,7 @@ import {
 } from "~~/utils/scaffold-eth/contract";
 import { useTargetNetwork } from "./useTargetNetwork";
 import { Encryptable } from "~~/utils/fhenixUtils";
-import { useFhenix } from "~~/services/fhenix/store";
+import { useFhenixClient } from "~~/services/fhenix/store";
 
 type UpdatedArgs = Parameters<ReturnType<typeof useContractWrite<Abi, string, undefined>>["writeAsync"]>[0];
 
@@ -43,7 +43,7 @@ export const useFhenixScaffoldContractWrite = <
   const writeTx = useTransactor();
   const [isMining, setIsMining] = useState(false);
   const { targetNetwork } = useTargetNetwork();
-  const { fhenixClient } = useFhenix();
+  const fhenixClient = useFhenixClient();
 
   const wagmiContractWrite = useContractWrite({
     chainId: targetNetwork.id,

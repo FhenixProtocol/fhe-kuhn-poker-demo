@@ -1,7 +1,7 @@
 import type { ExtractAbiFunctionNames } from "abitype";
 import { useAccount, useContractRead } from "wagmi";
 import { useDeployedContractInfo, useScaffoldContractRead } from "~~/hooks/scaffold-eth";
-import { useFhenix, useFhenixPermit } from "~~/services/fhenix/store";
+import { useFhenixClient, useFhenixPermit } from "~~/services/fhenix/store";
 import {
   AbiFunctionReturnType,
   ContractAbi,
@@ -26,7 +26,7 @@ export const useFhenixScaffoldContractRead = <
 >(
   config: UseFhenixScaffoldReadConfig<TContractName, TFunctionName>,
 ) => {
-  const { fhenixClient } = useFhenix();
+  const fhenixClient = useFhenixClient();
   const { data: deployedContract } = useDeployedContractInfo(config.contractName);
   const { address } = useAccount();
   const { permission } = useFhenixPermit(deployedContract?.address, address);
@@ -42,9 +42,11 @@ export const useFhenixScaffoldContractRead = <
 
   const { data, ...rest } = useScaffoldContractRead(injectedConfig);
 
-  // Unseal any sealed output types in the result data
-  const unsealedData: AbiFunctionReturnType<ContractAbi, TFunctionName, "fhenix-utils-modified"> | undefined =
-    unsealFhenixSealedItems(data, deployedContract?.address, address, fhenixClient);
+  // // Unseal any sealed output types in the result data
+  const unsealedData =
+    deployedContract?.address == null || address == null || fhenixClient == null
+      ? undefined
+      : unsealFhenixSealedItems(data, deployedContract?.address, address, fhenixClient);
 
   return {
     data: unsealedData,

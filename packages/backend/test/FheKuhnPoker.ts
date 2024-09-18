@@ -11,7 +11,8 @@ import {
   unsealMockFheOpsSealed,
   withinSnapshot,
 } from "./utils";
-import { ZeroAddress } from "ethers";
+import { zeroAddress } from "viem";
+
 import {
   AllPlayerActions,
   ExhaustiveGameBranch,
@@ -135,7 +136,7 @@ describe("FHEKuhnPoker", function () {
 
     expect(game.gid).to.eq(gid, "game id is 0");
     expect(game.playerA).to.eq(bob.address, "playerA is bob");
-    expect(game.playerB).to.eq(ZeroAddress, "playerB is unset");
+    expect(game.playerB).to.eq(zeroAddress, "playerB is unset");
     expect(game.state.pot).to.eq(1, "pot includes bob's ante");
     expect(await fheKuhnPoker.chips(bob.address)).to.eq(99, "bob's ante taken");
 
@@ -329,7 +330,7 @@ describe("FHEKuhnPoker", function () {
     await fheKuhnPoker.connect(oppositeSigner).performAction(PlayerAction.CHECK);
 
     game = await fheKuhnPoker.games(gid);
-    expect(game.outcome.winner).not.eq(ZeroAddress, "Game has ended");
+    expect(game.outcome.winner).not.eq(zeroAddress, "Game has ended");
 
     // Game Ended
     await expect(fheKuhnPoker.connect(startingSigner).performAction(PlayerAction.BET)).to.be.revertedWithCustomError(
@@ -401,7 +402,7 @@ describe("FHEKuhnPoker", function () {
           let expectedPot = game.state.pot;
           let expectedCardA = 0n;
           let expectedCardB = 0n;
-          let expectedWinner = ZeroAddress;
+          let expectedWinner = zeroAddress;
           let expectedOutcome: number = GameOutcome.EMPTY;
 
           // Take bet if this action includes a bet step
@@ -619,7 +620,7 @@ describe("FHEKuhnPoker", function () {
 
     expect(bobChipsFinal).to.eq(bobChipsInit + game.state.pot, "Bob given his ante back");
     expect(game.outcome.outcome).to.eq(GameOutcome.CANCEL, "Game cancelled");
-    expect(game.outcome.winner).to.eq(ZeroAddress, "Cancelled game has no winner");
+    expect(game.outcome.winner).to.eq(zeroAddress, "Cancelled game has no winner");
 
     bobGames = await fheKuhnPoker.getUserGames(bob.address);
     bobGameIds = bobGames.map(game => game.gid);
