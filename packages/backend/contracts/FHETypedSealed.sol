@@ -20,7 +20,7 @@ struct SealedAddress {
 	uint8 utype;
 }
 
-library TypedBindingsEbool {
+library FHETypedSealedEbool {
 	function sealTyped(
 		ebool value,
 		bytes32 publicKey
@@ -33,7 +33,7 @@ library TypedBindingsEbool {
 	}
 }
 
-library TypedBindingsEuint8 {
+library FHETypedSealedEuint8 {
 	function sealTyped(
 		euint8 value,
 		bytes32 publicKey
@@ -46,7 +46,7 @@ library TypedBindingsEuint8 {
 	}
 }
 
-library TypedBindingsEuint16 {
+library FHETypedSealedEuint16 {
 	function sealTyped(
 		euint16 value,
 		bytes32 publicKey
@@ -59,7 +59,7 @@ library TypedBindingsEuint16 {
 	}
 }
 
-library TypedBindingsEuint32 {
+library FHETypedSealedEuint32 {
 	function sealTyped(
 		euint32 value,
 		bytes32 publicKey
@@ -72,7 +72,7 @@ library TypedBindingsEuint32 {
 	}
 }
 
-library TypedBindingsEuint64 {
+library FHETypedSealedEuint64 {
 	function sealTyped(
 		euint64 value,
 		bytes32 publicKey
@@ -85,7 +85,7 @@ library TypedBindingsEuint64 {
 	}
 }
 
-library TypedBindingsEuint128 {
+library FHETypedSealedEuint128 {
 	function sealTyped(
 		euint128 value,
 		bytes32 publicKey
@@ -98,7 +98,7 @@ library TypedBindingsEuint128 {
 	}
 }
 
-library TypedBindingsEuint256 {
+library FHETypedSealedEuint256 {
 	function sealTyped(
 		euint256 value,
 		bytes32 publicKey
@@ -111,7 +111,7 @@ library TypedBindingsEuint256 {
 	}
 }
 
-library TypedBindingsEaddress {
+library FHETypedSealedEaddress {
 	function sealTyped(
 		eaddress value,
 		bytes32 publicKey
