@@ -4,7 +4,7 @@
   "scripts": {
     "account": "hardhat run scripts/listAccount.ts",
     "chain:faucet": "hardhat task:fhenix:usefaucet",
-    "chain:start": "hardhat localfhenix:start --image ghcr.io/fhenixprotocol/nitro/localfhenix:v0.3.0-alpha.2",
+    "chain:start": "hardhat localfhenix:start --image ghcr.io/fhenixprotocol/nitro/localfhenix:latest",
     "chain:stop": "hardhat localfhenix:stop",
     "clear": "rimraf ./artifacts ./cache ./coverage ./types ./coverage.json ./deployments/localfhenix",
     "compile": "hardhat compile",
@@ -33,7 +33,7 @@
   "devDependencies": {
     "@ethersproject/abi": "~5.7.0",
     "@ethersproject/providers": "~5.7.1",
-    "@fhenixprotocol/contracts": "0.3.0-alpha.2",
+    "@fhenixprotocol/contracts": "0.3.0-alpha.3",
     "@nomicfoundation/hardhat-chai-matchers": "~2.0.3",
     "@nomicfoundation/hardhat-ethers": "~3.0.5",
     "@nomicfoundation/hardhat-network-helpers": "~1.0.6",

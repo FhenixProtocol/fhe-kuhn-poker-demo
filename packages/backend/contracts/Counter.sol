@@ -7,7 +7,7 @@ import "./FHETypedSealed.sol";
 import { Permissioned, Permission } from "@fhenixprotocol/contracts/access/Permissioned.sol";
 
 contract Counter is Permissioned {
-	using TypedBindingsEuint32 for euint32;
+	using FHETypedSealedEuint32 for euint32;
 
 	euint32 private counter;
 	address public owner;

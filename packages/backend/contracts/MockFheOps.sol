@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.19 <0.9.0;
 
-import "hardhat/console.sol";
-
 library Precompiles {
 	address public constant Fheos = address(128);
 }
@@ -103,7 +101,8 @@ contract MockFheOps {
 		uint8 toType,
 		int32
 	) external pure returns (bytes memory) {
-		return bytes32ToBytes(bytes32(input), toType);
+		bytes32 result = bytes32(input);
+		return bytes32ToBytes(result, toType);
 	}
 
 	function add(
