@@ -54,21 +54,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Strings__factory>;
     getContractFactory(
-      name: "Counter",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Counter__factory>;
-    getContractFactory(
       name: "FHEKuhnPoker",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.FHEKuhnPoker__factory>;
-    getContractFactory(
-      name: "MockFheOps",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockFheOps__factory>;
-    getContractFactory(
-      name: "Precompiles",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Precompiles__factory>;
 
     getContractAt(
       name: "Permissioned",
@@ -121,25 +109,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Strings>;
     getContractAt(
-      name: "Counter",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Counter>;
-    getContractAt(
       name: "FHEKuhnPoker",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.FHEKuhnPoker>;
-    getContractAt(
-      name: "MockFheOps",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockFheOps>;
-    getContractAt(
-      name: "Precompiles",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Precompiles>;
 
     deployContract(
       name: "Permissioned",
@@ -182,21 +155,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Strings>;
     deployContract(
-      name: "Counter",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Counter>;
-    deployContract(
       name: "FHEKuhnPoker",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.FHEKuhnPoker>;
-    deployContract(
-      name: "MockFheOps",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.MockFheOps>;
-    deployContract(
-      name: "Precompiles",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Precompiles>;
 
     deployContract(
       name: "Permissioned",
@@ -249,25 +210,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Strings>;
     deployContract(
-      name: "Counter",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Counter>;
-    deployContract(
       name: "FHEKuhnPoker",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.FHEKuhnPoker>;
-    deployContract(
-      name: "MockFheOps",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.MockFheOps>;
-    deployContract(
-      name: "Precompiles",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Precompiles>;
 
     // default types
     getContractFactory(

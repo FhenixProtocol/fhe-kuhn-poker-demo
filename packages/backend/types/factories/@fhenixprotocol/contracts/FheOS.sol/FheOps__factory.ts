@@ -591,6 +591,64 @@ const _abi = [
       },
       {
         internalType: "bytes",
+        name: "lhsHash",
+        type: "bytes",
+      },
+      {
+        internalType: "bytes",
+        name: "rhsHash",
+        type: "bytes",
+      },
+    ],
+    name: "rol",
+    outputs: [
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes",
+      },
+    ],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "utype",
+        type: "uint8",
+      },
+      {
+        internalType: "bytes",
+        name: "lhsHash",
+        type: "bytes",
+      },
+      {
+        internalType: "bytes",
+        name: "rhsHash",
+        type: "bytes",
+      },
+    ],
+    name: "ror",
+    outputs: [
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes",
+      },
+    ],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "utype",
+        type: "uint8",
+      },
+      {
+        internalType: "bytes",
         name: "ctHash",
         type: "bytes",
       },
@@ -693,6 +751,30 @@ const _abi = [
       },
     ],
     name: "shr",
+    outputs: [
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes",
+      },
+    ],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint8",
+        name: "utype",
+        type: "uint8",
+      },
+      {
+        internalType: "bytes",
+        name: "value",
+        type: "bytes",
+      },
+    ],
+    name: "square",
     outputs: [
       {
         internalType: "bytes",

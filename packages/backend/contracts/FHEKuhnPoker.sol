@@ -2,9 +2,8 @@
 
 pragma solidity >=0.8.13 <0.9.0;
 
-import { euint8, FHE } from "@fhenixprotocol/contracts/FHE.sol";
+import { euint8, FHE, SealedUint } from "@fhenixprotocol/contracts/FHE.sol";
 import { Permissioned, Permission } from "@fhenixprotocol/contracts/access/Permissioned.sol";
-import { SealedUint, FHETypedSealedEuint8 } from "./FHETypedSealed.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 // Kuhn Poker (https://en.wikipedia.org/wiki/Kuhn_poker) on Fhenix
@@ -60,7 +59,6 @@ struct GameOutcome {
 
 contract FHEKuhnPoker is Permissioned {
 	using EnumerableSet for EnumerableSet.UintSet;
-	using FHETypedSealedEuint8 for euint8;
 
 	uint256 public gid = 0;
 	uint64 public timeoutDuration = 120;

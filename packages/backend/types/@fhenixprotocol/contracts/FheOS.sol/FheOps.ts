@@ -44,10 +44,13 @@ export interface FheOpsInterface extends Interface {
       | "random"
       | "rem"
       | "req"
+      | "rol"
+      | "ror"
       | "sealOutput"
       | "select"
       | "shl"
       | "shr"
+      | "square"
       | "sub"
       | "trivialEncrypt"
       | "verify"
@@ -136,6 +139,14 @@ export interface FheOpsInterface extends Interface {
     values: [BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "rol",
+    values: [BigNumberish, BytesLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "ror",
+    values: [BigNumberish, BytesLike, BytesLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "sealOutput",
     values: [BigNumberish, BytesLike, BytesLike]
   ): string;
@@ -150,6 +161,10 @@ export interface FheOpsInterface extends Interface {
   encodeFunctionData(
     functionFragment: "shr",
     values: [BigNumberish, BytesLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "square",
+    values: [BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "sub",
@@ -192,10 +207,13 @@ export interface FheOpsInterface extends Interface {
   decodeFunctionResult(functionFragment: "random", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "rem", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "req", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "rol", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "ror", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "sealOutput", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "select", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "shl", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "shr", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "square", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "sub", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "trivialEncrypt",
@@ -370,6 +388,18 @@ export interface FheOps extends BaseContract {
     "view"
   >;
 
+  rol: TypedContractMethod<
+    [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [string],
+    "view"
+  >;
+
+  ror: TypedContractMethod<
+    [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [string],
+    "view"
+  >;
+
   sealOutput: TypedContractMethod<
     [utype: BigNumberish, ctHash: BytesLike, pk: BytesLike],
     [string],
@@ -395,6 +425,12 @@ export interface FheOps extends BaseContract {
 
   shr: TypedContractMethod<
     [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [string],
+    "view"
+  >;
+
+  square: TypedContractMethod<
+    [utype: BigNumberish, value: BytesLike],
     [string],
     "view"
   >;
@@ -567,6 +603,20 @@ export interface FheOps extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "rol"
+  ): TypedContractMethod<
+    [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [string],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "ror"
+  ): TypedContractMethod<
+    [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [string],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "sealOutput"
   ): TypedContractMethod<
     [utype: BigNumberish, ctHash: BytesLike, pk: BytesLike],
@@ -596,6 +646,13 @@ export interface FheOps extends BaseContract {
     nameOrSignature: "shr"
   ): TypedContractMethod<
     [utype: BigNumberish, lhsHash: BytesLike, rhsHash: BytesLike],
+    [string],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "square"
+  ): TypedContractMethod<
+    [utype: BigNumberish, value: BytesLike],
     [string],
     "view"
   >;

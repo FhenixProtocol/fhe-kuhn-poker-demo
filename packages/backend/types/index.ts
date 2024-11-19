@@ -28,9 +28,5 @@ export type { ShortStrings } from "./@openzeppelin/contracts/utils/ShortStrings"
 export { ShortStrings__factory } from "./factories/@openzeppelin/contracts/utils/ShortStrings__factory";
 export type { Strings } from "./@openzeppelin/contracts/utils/Strings";
 export { Strings__factory } from "./factories/@openzeppelin/contracts/utils/Strings__factory";
-export type { Counter } from "./contracts/Counter";
-export { Counter__factory } from "./factories/contracts/Counter__factory";
 export type { FHEKuhnPoker } from "./contracts/FHEKuhnPoker";
 export { FHEKuhnPoker__factory } from "./factories/contracts/FHEKuhnPoker__factory";
-export type { MockFheOps } from "./contracts/MockFheOps.sol/MockFheOps";
-export { MockFheOps__factory } from "./factories/contracts/MockFheOps.sol/MockFheOps__factory";
