@@ -25,8 +25,6 @@ import type {
 
 export type GameStateStruct = {
   accepted: boolean;
-  eCardA: BigNumberish;
-  eCardB: BigNumberish;
   pot: BigNumberish;
   startingPlayer: AddressLike;
   activePlayer: AddressLike;
@@ -38,8 +36,6 @@ export type GameStateStruct = {
 
 export type GameStateStructOutput = [
   accepted: boolean,
-  eCardA: bigint,
-  eCardB: bigint,
   pot: bigint,
   startingPlayer: string,
   activePlayer: string,
@@ -49,8 +45,6 @@ export type GameStateStructOutput = [
   action3: bigint
 ] & {
   accepted: boolean;
-  eCardA: bigint;
-  eCardB: bigint;
   pot: bigint;
   startingPlayer: string;
   activePlayer: string;

@@ -36,8 +36,6 @@ struct Game {
 }
 struct GameState {
 	bool accepted;
-	euint8 eCardA;
-	euint8 eCardB;
 	//
 	uint8 pot;
 	address startingPlayer;
@@ -69,6 +67,8 @@ contract FHEKuhnPoker is Permissioned {
 
 	mapping(address => uint256) public chips;
 	mapping(uint256 => Game) public games;
+	mapping(uint256 => euint8) private eGameCardA;
+	mapping(uint256 => euint8) private eGameCardB;
 	mapping(address => uint256) public userActiveGame;
 	mapping(address => EnumerableSet.UintSet) private userGames;
 	mapping(address => mapping(address => EnumerableSet.UintSet))
@@ -323,10 +323,10 @@ contract FHEKuhnPoker is Permissioned {
 		// 4. The offset is added to `rand`
 		// 5. playerB card is `rand+offset % 3` (0 = J, 1 = Q, 2 = K)
 		euint8 rand = FHE.randomEuint8();
-		game.state.eCardA = rand.rem(euint3);
+		eGameCardA[game.gid] = rand.rem(euint3);
 
 		euint8 randOffset = FHE.randomEuint8().rem(euint2).add(euint1);
-		game.state.eCardB = rand.add(randOffset).rem(euint3);
+		eGameCardB[game.gid] = rand.add(randOffset).rem(euint3);
 	}
 
 	function _cancelRematchRequestIfOpen(Game storage game) internal {
@@ -389,8 +389,8 @@ contract FHEKuhnPoker is Permissioned {
 		game.state.timeout = 0;
 		game.state.activePlayer = address(0);
 
-		game.outcome.cardA = game.state.eCardA.decrypt();
-		game.outcome.cardB = game.state.eCardB.decrypt();
+		game.outcome.cardA = eGameCardA[game.gid].decrypt();
+		game.outcome.cardB = eGameCardB[game.gid].decrypt();
 		game.outcome.winner = game.outcome.cardA > game.outcome.cardB
 			? game.playerA
 			: game.playerB;
@@ -404,8 +404,8 @@ contract FHEKuhnPoker is Permissioned {
 		game.state.timeout = 0;
 		game.state.activePlayer = address(0);
 
-		game.outcome.cardA = game.state.eCardA.decrypt();
-		game.outcome.cardB = game.state.eCardB.decrypt();
+		game.outcome.cardA = eGameCardA[game.gid].decrypt();
+		game.outcome.cardB = eGameCardB[game.gid].decrypt();
 		game.outcome.winner = msg.sender == game.playerA
 			? game.playerB
 			: game.playerA;
@@ -516,10 +516,10 @@ contract FHEKuhnPoker is Permissioned {
 		Game memory game = games[_gid];
 
 		if (msg.sender == game.playerA) {
-			return game.state.eCardA.sealTyped(permission.publicKey);
+			return eGameCardA[_gid].sealTyped(permission.publicKey);
 		}
 		if (msg.sender == game.playerB) {
-			return game.state.eCardB.sealTyped(permission.publicKey);
+			return eGameCardB[_gid].sealTyped(permission.publicKey);
 		}
 
 		revert NotPlayerInGame();
@@ -553,16 +553,6 @@ contract FHEKuhnPoker is Permissioned {
 		}
 	}
 
-	struct UserGameState {
-		Game game;
-		uint256 selfChips;
-		uint256 opponentChips;
-		uint256 activeGid;
-		uint256 rematchGid;
-		uint256 selfGid;
-		uint256 opponentGid;
-	}
-
 	function _getOpponentAddress(
 		uint256 _gid,
 		address _user
@@ -573,6 +563,15 @@ contract FHEKuhnPoker is Permissioned {
 				: games[_gid].playerA;
 	}
 
+	struct UserGameState {
+		Game game;
+		uint256 selfChips;
+		uint256 opponentChips;
+		uint256 activeGid;
+		uint256 rematchGid;
+		uint256 selfGid;
+		uint256 opponentGid;
+	}
 	function getUserGameState(
 		address _user
 	) external view returns (UserGameState memory gameState) {

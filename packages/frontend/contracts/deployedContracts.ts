@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   412346: {
     FHEKuhnPoker: {
-      address: "0xbeb4eF1fcEa618C6ca38e3828B00f8D481EC2CC2",
+      address: "0xB170fC5BAC4a87A63fC84653Ee7e0db65CC62f96",
       abi: [
         {
           inputs: [],
@@ -543,16 +543,6 @@ const deployedContracts = {
                   type: "bool",
                 },
                 {
-                  internalType: "euint8",
-                  name: "eCardA",
-                  type: "uint256",
-                },
-                {
-                  internalType: "euint8",
-                  name: "eCardB",
-                  type: "uint256",
-                },
-                {
                   internalType: "uint8",
                   name: "pot",
                   type: "uint8",
@@ -671,16 +661,6 @@ const deployedContracts = {
                       internalType: "bool",
                       name: "accepted",
                       type: "bool",
-                    },
-                    {
-                      internalType: "euint8",
-                      name: "eCardA",
-                      type: "uint256",
-                    },
-                    {
-                      internalType: "euint8",
-                      name: "eCardB",
-                      type: "uint256",
                     },
                     {
                       internalType: "uint8",
@@ -861,16 +841,6 @@ const deployedContracts = {
                       type: "bool",
                     },
                     {
-                      internalType: "euint8",
-                      name: "eCardA",
-                      type: "uint256",
-                    },
-                    {
-                      internalType: "euint8",
-                      name: "eCardB",
-                      type: "uint256",
-                    },
-                    {
                       internalType: "uint8",
                       name: "pot",
                       type: "uint8",
@@ -996,16 +966,6 @@ const deployedContracts = {
                           internalType: "bool",
                           name: "accepted",
                           type: "bool",
-                        },
-                        {
-                          internalType: "euint8",
-                          name: "eCardA",
-                          type: "uint256",
-                        },
-                        {
-                          internalType: "euint8",
-                          name: "eCardB",
-                          type: "uint256",
                         },
                         {
                           internalType: "uint8",
@@ -1166,16 +1126,6 @@ const deployedContracts = {
                       internalType: "bool",
                       name: "accepted",
                       type: "bool",
-                    },
-                    {
-                      internalType: "euint8",
-                      name: "eCardA",
-                      type: "uint256",
-                    },
-                    {
-                      internalType: "euint8",
-                      name: "eCardB",
-                      type: "uint256",
                     },
                     {
                       internalType: "uint8",
