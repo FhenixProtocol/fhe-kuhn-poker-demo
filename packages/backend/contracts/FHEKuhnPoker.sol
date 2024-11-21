@@ -310,7 +310,7 @@ contract FHEKuhnPoker is Permissioned {
 
 		// Random value between 0 and 1
 		// FHE randomness is leveraged, but it does not need to remain encrypted
-		uint8 startingPlayer = FHE.decrypt(FHE.randomEuint8()) % 2;
+		uint8 startingPlayer = 0; // FHE.decrypt(FHE.randomEuint8()) % 2;
 		game.state.startingPlayer = startingPlayer == 0
 			? game.playerA
 			: game.playerB;
@@ -322,10 +322,13 @@ contract FHEKuhnPoker is Permissioned {
 		// 3. A random offset between 1 and 2 is generated
 		// 4. The offset is added to `rand`
 		// 5. playerB card is `rand+offset % 3` (0 = J, 1 = Q, 2 = K)
-		euint8 rand = FHE.randomEuint8();
+		euint8 rand = FHE.asEuint8(128); // FHE.randomEuint8();
 		eGameCardA[game.gid] = rand.rem(euint3);
 
-		euint8 randOffset = FHE.randomEuint8().rem(euint2).add(euint1);
+		euint8 randOffset = /* FHE.randomEuint8() */ FHE
+			.asEuint8(45)
+			.rem(euint2)
+			.add(euint1);
 		eGameCardB[game.gid] = rand.add(randOffset).rem(euint3);
 	}
 
