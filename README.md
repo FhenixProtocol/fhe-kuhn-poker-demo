@@ -8,4 +8,8 @@ Additionally, this repo includes utilities for interacting with the fhenix block
 such as `useFhenixScaffoldContractRead` which automatically injects Fhenix permissions into read calls and decrypts sealed outputs, and `useFhenixScaffoldContractWrite` which automatically encrypts input variables before they are sent to the chain to be consumed as `inEuint` varieties.
 
 Video demonstration of FHE kuhn poker:
-<video controls src="FheKuhnPoker_v2.mp4" title="Title"></video>
+
+
+
+https://github.com/user-attachments/assets/b764d7c7-f0d4-4316-8e18-d538715f4ba6
+
