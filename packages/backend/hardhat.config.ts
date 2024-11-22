@@ -6,6 +6,7 @@ import "@typechain/hardhat";
 import { config as dotenvConfig } from "dotenv";
 import "fhenix-hardhat-docker";
 import "fhenix-hardhat-plugin";
+import "fhenix-hardhat-network";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";

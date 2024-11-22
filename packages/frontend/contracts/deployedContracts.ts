@@ -5,9 +5,9 @@
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
-  412346: {
+  420105: {
     FHEKuhnPoker: {
-      address: "0xbeb4eF1fcEa618C6ca38e3828B00f8D481EC2CC2",
+      address: "0xB8F92B06Ba405C6947c206E05e0c00D3E353D984",
       abi: [
         {
           inputs: [],
@@ -453,6 +453,44 @@ const deployedContracts = {
           name: "dealMeIn",
           outputs: [],
           stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "eGameCardA",
+          outputs: [
+            {
+              internalType: "euint8",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "eGameCardB",
+          outputs: [
+            {
+              internalType: "euint8",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
           type: "function",
         },
         {

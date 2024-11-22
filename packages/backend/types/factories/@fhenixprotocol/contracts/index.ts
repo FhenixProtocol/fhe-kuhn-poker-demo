@@ -3,4 +3,5 @@
 /* eslint-disable */
 export * as fheOsSol from "./FheOS.sol";
 export * as access from "./access";
+export * as utils from "./utils";
 export { FHE__factory } from "./FHE__factory";

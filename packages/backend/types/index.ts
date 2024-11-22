@@ -16,6 +16,8 @@ export type { FheOps } from "./@fhenixprotocol/contracts/FheOS.sol/FheOps";
 export { FheOps__factory } from "./factories/@fhenixprotocol/contracts/FheOS.sol/FheOps__factory";
 export type { Precompiles } from "./@fhenixprotocol/contracts/FheOS.sol/Precompiles";
 export { Precompiles__factory } from "./factories/@fhenixprotocol/contracts/FheOS.sol/Precompiles__factory";
+export type { MockFheOps } from "./@fhenixprotocol/contracts/utils/debug/MockFheOps.sol/MockFheOps";
+export { MockFheOps__factory } from "./factories/@fhenixprotocol/contracts/utils/debug/MockFheOps.sol/MockFheOps__factory";
 export type { IERC5267 } from "./@openzeppelin/contracts/interfaces/IERC5267";
 export { IERC5267__factory } from "./factories/@openzeppelin/contracts/interfaces/IERC5267__factory";
 export type { ECDSA } from "./@openzeppelin/contracts/utils/cryptography/ECDSA";

@@ -69,6 +69,9 @@ importers:
       '@typechain/hardhat':
         specifier: ~9.1.0
         version: 9.1.0(@typechain/ethers-v6@0.5.1(ethers@6.10.0)(typechain@8.3.2(typescript@5.1.6))(typescript@5.1.6))(ethers@6.10.0)(hardhat@2.19.5(ts-node@10.9.2(@types/node@22.9.0)(typescript@5.1.6))(typescript@5.1.6))(typechain@8.3.2(typescript@5.1.6))
+      '@types/chai':
+        specifier: ^5.0.1
+        version: 5.0.1
       '@types/eslint':
         specifier: ~8
         version: 8.56.12
@@ -106,16 +109,16 @@ importers:
         specifier: ~6.10.0
         version: 6.10.0
       fhenix-hardhat-docker:
-        specifier: 0.3.2
+        specifier: ~0.3.2
         version: 0.3.2(hardhat@2.19.5(ts-node@10.9.2(@types/node@22.9.0)(typescript@5.1.6))(typescript@5.1.6))
       fhenix-hardhat-network:
-        specifier: 0.3.2
+        specifier: ~0.3.2
         version: 0.3.2(@fhenixprotocol/contracts@0.3.0-alpha.6)(hardhat@2.19.5(ts-node@10.9.2(@types/node@22.9.0)(typescript@5.1.6))(typescript@5.1.6))
       fhenix-hardhat-plugin:
-        specifier: 0.3.2
+        specifier: ~0.3.2
         version: 0.3.2(hardhat@2.19.5(ts-node@10.9.2(@types/node@22.9.0)(typescript@5.1.6))(typescript@5.1.6))
       fhenixjs:
-        specifier: 0.4.1
+        specifier: ~0.4.1
         version: 0.4.1
       hardhat:
         specifier: ~2.19.4
@@ -181,7 +184,7 @@ importers:
         specifier: ~6.11.1
         version: 6.11.1
       fhenixjs:
-        specifier: 0.4.1
+        specifier: ~0.4.1
         version: 0.4.1
       framer-motion:
         specifier: ^11.5.4
@@ -10266,7 +10269,7 @@ snapshots:
     dependencies:
       axios: 1.7.7
       chalk: 4.1.2
-      ethers: 6.10.0
+      ethers: 6.11.1
       fhenixjs: 0.4.1
       hardhat: 2.19.5(ts-node@10.9.2(@types/node@22.9.0)(typescript@5.1.6))(typescript@5.1.6)
     transitivePeerDependencies:

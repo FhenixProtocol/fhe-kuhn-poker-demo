@@ -67,8 +67,8 @@ contract FHEKuhnPoker is Permissioned {
 
 	mapping(address => uint256) public chips;
 	mapping(uint256 => Game) public games;
-	mapping(uint256 => euint8) private eGameCardA;
-	mapping(uint256 => euint8) private eGameCardB;
+	mapping(uint256 => euint8) public eGameCardA;
+	mapping(uint256 => euint8) public eGameCardB;
 	mapping(address => uint256) public userActiveGame;
 	mapping(address => EnumerableSet.UintSet) private userGames;
 	mapping(address => mapping(address => EnumerableSet.UintSet))
@@ -322,13 +322,10 @@ contract FHEKuhnPoker is Permissioned {
 		// 3. A random offset between 1 and 2 is generated
 		// 4. The offset is added to `rand`
 		// 5. playerB card is `rand+offset % 3` (0 = J, 1 = Q, 2 = K)
-		euint8 rand = FHE.asEuint8(128); // FHE.randomEuint8();
+		euint8 rand = FHE.randomEuint8();
 		eGameCardA[game.gid] = rand.rem(euint3);
 
-		euint8 randOffset = /* FHE.randomEuint8() */ FHE
-			.asEuint8(45)
-			.rem(euint2)
-			.add(euint1);
+		euint8 randOffset = FHE.randomEuint8().rem(euint2).add(euint1);
 		eGameCardB[game.gid] = rand.add(randOffset).rem(euint3);
 	}
 
@@ -418,7 +415,7 @@ contract FHEKuhnPoker is Permissioned {
 		emit WonByFold(game.outcome.winner, game.gid, game.state.pot);
 	}
 
-	function handle_Action(Game storage game, Action action) internal {
+	function handleAction1(Game storage game, Action action) internal {
 		game.state.action1 = action;
 
 		if (action == Action.BET) {
@@ -431,7 +428,7 @@ contract FHEKuhnPoker is Permissioned {
 		}
 	}
 
-	function handle_Bet_Action(Game storage game, Action action) internal {
+	function handleAction2AfterBet(Game storage game, Action action) internal {
 		game.state.action2 = action;
 
 		if (action == Action.CALL) {
@@ -444,7 +441,10 @@ contract FHEKuhnPoker is Permissioned {
 		}
 	}
 
-	function handle_Check_Action(Game storage game, Action action) internal {
+	function handleAction2AfterCheck(
+		Game storage game,
+		Action action
+	) internal {
 		game.state.action2 = action;
 
 		if (action == Action.BET) {
@@ -457,7 +457,7 @@ contract FHEKuhnPoker is Permissioned {
 		}
 	}
 
-	function handle_Check_Bet_Action(
+	function handleAction3AfterCheckBet(
 		Game storage game,
 		Action action
 	) internal {
@@ -483,25 +483,25 @@ contract FHEKuhnPoker is Permissioned {
 		emit PerformedGameAction(msg.sender, game.gid, action);
 
 		if (game.state.action1 == Action.EMPTY) {
-			handle_Action(game, action);
+			handleAction1(game, action);
 			return;
 		}
 
 		if (game.state.action1 == Action.BET) {
-			handle_Bet_Action(game, action);
+			handleAction2AfterBet(game, action);
 			return;
 		}
 
 		// action1 = CHECK
 		// action2 = EMPTY || BET
 		if (game.state.action2 == Action.EMPTY) {
-			handle_Check_Action(game, action);
+			handleAction2AfterCheck(game, action);
 			return;
 		}
 
 		// action1 = CHECK
 		// action2 = BET
-		handle_Check_Bet_Action(game, action);
+		handleAction3AfterCheckBet(game, action);
 	}
 
 	// VIEW

@@ -230,16 +230,19 @@ describe("FHEKuhnPoker", function () {
         else startingPlayer.B += 1;
         startingPlayer.total += 1;
 
-        expect(game.state.eCardA).not.eq(game.state.eCardB, "Players cards shouldn't match");
-        playerACards[cardToLetter(game.state.eCardA)] += 1;
+        const eCardA = await fheKuhnPoker.eGameCardA(gid);
+        const eCardB = await fheKuhnPoker.eGameCardB(gid);
+
+        expect(eCardA).not.eq(eCardB, "Players cards shouldn't match");
+        playerACards[cardToLetter(eCardA)] += 1;
         playerACards.total += 1;
-        playerBCards[cardToLetter(game.state.eCardB)] += 1;
+        playerBCards[cardToLetter(eCardB)] += 1;
         playerBCards.total += 1;
 
-        cardPairs[`${cardToLetter(game.state.eCardA)}-${cardToLetter(game.state.eCardB)}`] += 1;
+        cardPairs[`${cardToLetter(eCardA)}-${cardToLetter(eCardB)}`] += 1;
         cardPairs.total += 1;
 
-        if (game.state.eCardA > game.state.eCardB) wins.A += 1;
+        if (eCardA > eCardB) wins.A += 1;
         else wins.B += 1;
         wins.total += 1;
       });
@@ -282,8 +285,6 @@ describe("FHEKuhnPoker", function () {
   it("getGameCard should return sealed card", async () => {
     const gid = await createGame();
 
-    const game = await fheKuhnPoker.games(gid);
-
     let permission = await createFhenixContractPermission(hre, bob, fheKuhnPokerAddress);
     const bobSealedCard = await fheKuhnPoker.connect(bob).getGameCard(permission, gid);
     const bobUnsealedCard = unsealMockFheOpsSealed(bobSealedCard.data);
@@ -292,8 +293,10 @@ describe("FHEKuhnPoker", function () {
     const adaSealedCard = await fheKuhnPoker.connect(ada).getGameCard(permission, gid);
     const adaUnsealedCard = unsealMockFheOpsSealed(adaSealedCard.data);
 
-    expect(bobUnsealedCard).to.eq(game.state.eCardA, "bob's unsealed card should match");
-    expect(adaUnsealedCard).to.eq(game.state.eCardB, "ada's unsealed card should match");
+    const eCardA = await fheKuhnPoker.eGameCardA(gid);
+    const eCardB = await fheKuhnPoker.eGameCardB(gid);
+    expect(bobUnsealedCard).to.eq(eCardA, "bob's unsealed card should match");
+    expect(adaUnsealedCard).to.eq(eCardB, "ada's unsealed card should match");
   });
 
   it("performAction should revert on invalid params", async () => {
@@ -413,8 +416,8 @@ describe("FHEKuhnPoker", function () {
 
           // Action will ultimately reveal cards
           if (includesReveal) {
-            expectedCardA = game.state.eCardA;
-            expectedCardB = game.state.eCardB;
+            expectedCardA = await fheKuhnPoker.eGameCardA(gid);
+            expectedCardB = await fheKuhnPoker.eGameCardB(gid);
           }
 
           // Winner is decided by highest card

@@ -30,6 +30,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Precompiles__factory>;
     getContractFactory(
+      name: "MockFheOps",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MockFheOps__factory>;
+    getContractFactory(
+      name: "Precompiles",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Precompiles__factory>;
+    getContractFactory(
       name: "IERC5267",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC5267__factory>;
@@ -79,6 +87,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Precompiles>;
     getContractAt(
+      name: "MockFheOps",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MockFheOps>;
+    getContractAt(
+      name: "Precompiles",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Precompiles>;
+    getContractAt(
       name: "IERC5267",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -131,6 +149,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Precompiles>;
     deployContract(
+      name: "MockFheOps",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.MockFheOps>;
+    deployContract(
+      name: "Precompiles",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Precompiles>;
+    deployContract(
       name: "IERC5267",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC5267>;
@@ -174,6 +200,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.FheOps>;
+    deployContract(
+      name: "Precompiles",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Precompiles>;
+    deployContract(
+      name: "MockFheOps",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.MockFheOps>;
     deployContract(
       name: "Precompiles",
       args: any[],

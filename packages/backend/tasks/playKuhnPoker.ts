@@ -11,6 +11,7 @@ import {
   playerActionNameToNum,
   playerActionNumToName,
 } from "../test/kuhnPokerUtils";
+import { ContractTransactionResponse } from "ethers";
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -32,12 +33,16 @@ task("task:playPoker").setAction(async function (taskArguments: TaskArguments, h
   const [signer, player, computer] = await ethers.getSigners();
 
   // Localfhenix
+  console.log("getting deployed contract");
   const kuhnPokerDeployment = await deployments.get("FHEKuhnPoker");
   const kuhnPokerAddress = kuhnPokerDeployment.address;
   const kuhnPoker = await ethers.getContractAt("FHEKuhnPoker", kuhnPokerDeployment.address);
 
+  console.log("give signer funds");
   await fhenixjs.getFunds(signer.address);
+  console.log("give player funds");
   await fhenixjs.getFunds(player.address);
+  console.log("give computer funds");
   await fhenixjs.getFunds(computer.address);
 
   // Hardhat
@@ -86,8 +91,14 @@ task("task:playPoker").setAction(async function (taskArguments: TaskArguments, h
     return [permit, permission];
   }
 
-  await kuhnPoker.connect(player).dealMeIn(10);
-  await kuhnPoker.connect(computer).dealMeIn(10);
+  let tx: ContractTransactionResponse;
+
+  console.log("deal in player");
+  tx = await kuhnPoker.connect(player).dealMeIn(10);
+  await tx.wait();
+  console.log("deal in computer");
+  tx = await kuhnPoker.connect(computer).dealMeIn(10);
+  await tx.wait();
 
   let sessionEnded = false;
 
@@ -121,9 +132,11 @@ task("task:playPoker").setAction(async function (taskArguments: TaskArguments, h
   }
 
   while (!sessionEnded) {
-    await kuhnPoker.connect(computer).findGame();
-    const gid = (await kuhnPoker.gid()) - 1n;
-    await kuhnPoker.connect(player).findGame();
+    tx = await kuhnPoker.connect(computer).findGame();
+    await tx.wait();
+    const gid = await kuhnPoker.gid();
+    tx = await kuhnPoker.connect(player).findGame();
+    await tx.wait();
     let game = await kuhnPoker.games(gid);
 
     const computerChips = await kuhnPoker.chips(computer.address);
@@ -225,7 +238,8 @@ task("task:playPoker").setAction(async function (taskArguments: TaskArguments, h
         sleep(1000);
       }
 
-      await kuhnPoker.connect(roundPlayer).performAction(roundAction);
+      tx = await kuhnPoker.connect(roundPlayer).performAction(roundAction);
+      await tx.wait();
       await sleep(1000);
 
       game = await kuhnPoker.games(gid);

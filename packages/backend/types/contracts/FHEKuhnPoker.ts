@@ -154,6 +154,8 @@ export interface FHEKuhnPokerInterface extends Interface {
       | "cancelSearch"
       | "chips"
       | "dealMeIn"
+      | "eGameCardA"
+      | "eGameCardB"
       | "eip712Domain"
       | "findGame"
       | "games"
@@ -196,6 +198,14 @@ export interface FHEKuhnPokerInterface extends Interface {
   encodeFunctionData(functionFragment: "chips", values: [AddressLike]): string;
   encodeFunctionData(
     functionFragment: "dealMeIn",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "eGameCardA",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "eGameCardB",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -254,6 +264,8 @@ export interface FHEKuhnPokerInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "chips", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "dealMeIn", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "eGameCardA", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "eGameCardB", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "eip712Domain",
     data: BytesLike
@@ -543,6 +555,10 @@ export interface FHEKuhnPoker extends BaseContract {
     "nonpayable"
   >;
 
+  eGameCardA: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+
+  eGameCardB: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+
   eip712Domain: TypedContractMethod<
     [],
     [
@@ -646,6 +662,12 @@ export interface FHEKuhnPoker extends BaseContract {
   getFunction(
     nameOrSignature: "dealMeIn"
   ): TypedContractMethod<[chipCount: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "eGameCardA"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "eGameCardB"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
   getFunction(
     nameOrSignature: "eip712Domain"
   ): TypedContractMethod<
